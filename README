@@ -37,7 +37,7 @@ Similar to Codea drawing primitives:
 * box(x,y,width,height): draw a box at x,y (left-bottom corner).
 * ellipse(x,y,width,height): draw an ellipse centered at x,y.
 * line(x1,y1,x2,y2): draw a line from x1,y1 to x2,y2.
-* text(x,y,string): print the speciifed text at x,y using a bitmap font.
+* text(x,y,string): print the specified text at x,y using a bitmap font.
 
 Not available in Codea:
 
