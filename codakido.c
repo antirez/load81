@@ -53,6 +53,7 @@ struct globalConfig {
     SDL_Surface *screen;
     frameBuffer *fb;
     lua_State *L;
+    unsigned char *font[256];
 } ck;
 
 /* ============================= Frame buffer ============================== */
@@ -225,6 +226,37 @@ void drawLine(frameBuffer *fb, int x1, int y1, int x2, int y2, int r, int g, int
     }
 }
 
+/* ============================= Bitmap font =============================== */
+void bfLoadFont(char **c) {
+    /* Set all the entries to NULL. */
+    memset(c,0,sizeof(unsigned char*)*256);
+    /* Now populate the entries we have in our bitmap font description. */
+    #include "bitfont.h"
+}
+
+void bfWriteChar(frameBuffer *fb, int xp, int yp, int c, int r, int g, int b, float alpha) {
+    int x,y;
+    unsigned char *bitmap = ck.font[c&0xff];
+
+    if (!bitmap) bitmap = ck.font['?'];
+    for (y = 0; y < 16; y++) {
+        for (x = 0; x < 16; x++) {
+            int byte = (y*16+x)/8;
+            int bit = x%8;
+            int set = bitmap[byte] & (0x80>>bit);
+
+            if (set) setPixelWithAlpha(fb,xp+x,yp-y+15,r,g,b,alpha);
+        }
+    }
+}
+
+void bfWriteString(frameBuffer *fb, int xp, int yp, const char *s, int len, int r, int g, int b, float alpha) {
+    int i;
+
+    for (i = 0; i < len; i++)
+        bfWriteChar(fb,xp-3+i*10,yp,s[i],r,g,b,alpha);
+}
+
 /* ========================= Lua helper functions ========================== */
 
 /* Set a Lua global to the specified number. */
@@ -341,6 +373,19 @@ int lineBinding(lua_State *L) {
     return 0;
 }
 
+int textBinding(lua_State *L) {
+    int x,y;
+    const char *s;
+    size_t len;
+
+    x = lua_tonumber(L,-3);
+    y = lua_tonumber(L,-2);
+    s = lua_tolstring(L,-1,&len);
+    if (!s) return 0;
+    bfWriteString(ck.fb,x,y,s,len,ck.r,ck.g,ck.b,ck.alpha);
+    return 0;
+}
+
 int backgroundBinding(lua_State *L) {
     int r,g,b;
 
@@ -396,6 +441,11 @@ void initConfig(void) {
     lua_setglobal(ck.L,"triangle");
     lua_pushcfunction(ck.L,lineBinding);
     lua_setglobal(ck.L,"line");
+    lua_pushcfunction(ck.L,textBinding);
+    lua_setglobal(ck.L,"text");
+
+    /* Load the bitmap font */
+    bfLoadFont((char**)ck.font);
 }
 
 void initScreen(void) {

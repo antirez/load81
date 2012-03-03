@@ -1,1 +1,5 @@
 codakido
+lua/src/*.o
+lua/src/*.a
+lua/src/lua
+lua/src/luac

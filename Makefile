@@ -1,6 +1,6 @@
 all: codakido
 
-codakido: codakido.c lua/src/liblua.a
+codakido: codakido.c lua/src/liblua.a bitfont.h
 	$(CC) -O2 -Wall -W $< `sdl-config --cflags` `sdl-config --libs` -lm lua/src/liblua.a -o $@
 
 lua/src/liblua.a:
