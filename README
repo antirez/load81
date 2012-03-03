@@ -34,7 +34,7 @@ Similar to Codea drawing primitives:
 
 * fill(r,g,b,alpha): select the drawing color.
 * background(r,g,b): paint the whole background with the specified color.
-* box(x,y,width,height): draw a box at x,y (left-bottom corner).
+* rect(x,y,width,height): draw a rectangle at x,y (left-bottom corner).
 * ellipse(x,y,width,height): draw an ellipse centered at x,y.
 * line(x1,y1,x2,y2): draw a line from x1,y1 to x2,y2.
 * text(x,y,string): print the specified text at x,y using a bitmap font.

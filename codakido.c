@@ -327,7 +327,7 @@ int fillBinding(lua_State *L) {
     return 0;
 }
 
-int boxBinding(lua_State *L) {
+int rectBinding(lua_State *L) {
     int x,y,w,h;
 
     x = lua_tonumber(L,-4);
@@ -431,8 +431,8 @@ void initConfig(void) {
     /* Register API */
     lua_pushcfunction(ck.L,fillBinding);
     lua_setglobal(ck.L,"fill");
-    lua_pushcfunction(ck.L,boxBinding);
-    lua_setglobal(ck.L,"box");
+    lua_pushcfunction(ck.L,rectBinding);
+    lua_setglobal(ck.L,"rect");
     lua_pushcfunction(ck.L,ellipseBinding);
     lua_setglobal(ck.L,"ellipse");
     lua_pushcfunction(ck.L,backgroundBinding);
