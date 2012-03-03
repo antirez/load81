@@ -2,7 +2,7 @@ README
 ===
 
 Codakido is a (currently) rudimental attempt at creating a Codea-inspired
-environment to learn children how to write Lua programs.
+environment to teach children how to write Lua programs.
 
 It is written in ANSI C and uses SDL, so should compile on Mac OS X and Linux
 without issues.
