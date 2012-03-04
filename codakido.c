@@ -304,6 +304,7 @@ void loadUserProgram(char *filename) {
         fprintf(stderr, "Couldn't load file: %s\n", lua_tostring(ck.L, -1));
         exit(1);
     }
+    SDL_WM_SetCaption(filename, filename);
     if (lua_pcall(ck.L,0,0,0)) {
         fprintf(stderr, "Error running script: %s\n", lua_tostring(ck.L,-1));
         exit(1);
@@ -549,6 +550,9 @@ static int processSdlEvents(void) {
             break;
         case SDL_MOUSEBUTTONUP:
             mouseButtonEvent(event.button.button,0);
+            break;
+        case SDL_QUIT:
+            exit(0);
             break;
         }
     }
