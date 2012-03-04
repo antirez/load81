@@ -30,6 +30,7 @@
 #include <lua.h>
 #include <lauxlib.h>
 #include <lualib.h>
+#include <errno.h>
 
 #define NOTUSED(V) ((void) V)
 
@@ -84,6 +85,7 @@ struct editorConfig {
     int col;    /* Current cursor col position in file */
     int screenrows; /* Number of rows that we can show */
     int screencols; /* Number of cols that we can show */
+    int margin_top, margin_bottom, margin_left, margin_right;
     int rowoff;     /* Row offset on screen */
     int coloff;     /* Column offset on screen */
     int numrows;    /* Number of rows */
@@ -548,10 +550,12 @@ int processSdlEvents(void) {
 void editorDrawCursor(void) {
     int x = E.cx*FONT_KERNING;
     int y = ck.height-((E.cy+1)*FONT_HEIGHT);
-    int margin = (FONT_WIDTH-FONT_KERNING)/2;
+    int charmargin = (FONT_WIDTH-FONT_KERNING)/2;
 
-    if (!(E.cblink & 0x80)) drawBox(ck.fb,x+margin,y,
-                                x+margin+FONT_KERNING-1,y+FONT_HEIGHT-1,
+    x += E.margin_left;
+    y -= E.margin_top;
+    if (!(E.cblink & 0x80)) drawBox(ck.fb,x+charmargin,y,
+                                x+charmargin+FONT_KERNING-1,y+FONT_HEIGHT-1,
                                 165,165,255,.5);
     E.cblink += 4;
 }
@@ -570,15 +574,25 @@ void editorDrawChars(void) {
             if (idx >= r->size) break;
             charx = x*FONT_KERNING;
             chary = ck.height-((y+1)*FONT_HEIGHT);
+            charx += E.margin_left;
+            chary -= E.margin_top;
             bfWriteChar(ck.fb,charx,chary,r->chars[idx],165,165,255,1);
         }
     }
 }
 
 void editorDraw() {
-    drawBox(ck.fb,0,0,ck.width-1,ck.height-1,66,66,231,1);
+    drawBox(ck.fb,0,0,ck.width-1,ck.height-1,165,165,255,1);
+    drawBox(ck.fb,
+            E.margin_left,
+            E.margin_top,
+            ck.width-1-E.margin_right,
+            ck.height-1-E.margin_bottom,66,66,231,1);
     editorDrawChars();
     editorDrawCursor();
+    /* Show info about the current file */
+    bfWriteString(ck.fb,E.margin_left,ck.width-E.margin_top+2,ck.filename,
+        strlen(ck.filename), 255,255,255,1);
 }
 
 void editorInsertRow(int at, char *s) {
@@ -708,6 +722,29 @@ void initConfig(void) {
     bfLoadFont((char**)ck.font);
 }
 
+/* Load the specified program in the editor memory and returns 0 on success
+ * or 1 on error. */
+int editorLoadProgram(char *filename) {
+    FILE *fp;
+    char line[1024];
+
+    /* TODO: remove old program from rows. */
+    fp = fopen(filename,"r");
+    if (!fp) {
+        perror("fopen loading program into editor");
+        return 1;
+    }
+    while(fgets(line,sizeof(line),fp) != NULL) {
+        int l = strlen(line);
+
+        if (l && (line[l-1] == '\n' || line[l-1] == '\r'))
+            line[l-1] = '\0';
+        editorInsertRow(E.numrows,line);
+    }
+    fclose(fp);
+    return 0;
+}
+
 void initEditor(void) {
     E.cx = 0;
     E.cy = 0;
@@ -718,16 +755,22 @@ void initEditor(void) {
     E.coloff = 0;
     E.numrows = 0;
     E.rows = NULL;
-    E.screencols = ck.width / FONT_KERNING;
-    E.screenrows = ck.height / FONT_HEIGHT;
+    E.margin_top = E.margin_bottom = E.margin_left = E.margin_right = 30;
+    E.screencols = (ck.width-E.margin_left-E.margin_right) / FONT_KERNING;
+    E.screenrows = (ck.height-E.margin_top-E.margin_bottom) / FONT_HEIGHT;
     memset(E.key,0,sizeof(E.key));
-    editorInsertRow(E.numrows,"foo");
-    editorInsertRow(E.numrows,"Foo BARED");
 }
 
 void initScreen(void) {
     ck.fb = createFrameBuffer(ck.width,ck.height);
     ck.screen = sdlInit(ck.width,ck.height,0);
+}
+
+void resetProgram(void) {
+    /* TODO: create Lua interpreter */
+    /* Reset everything */
+    /* Load program into Lua and compile */
+    ck.epoch = 0;
 }
 
 /* ================================= Main ================================== */
@@ -746,7 +789,9 @@ int main(int argc, char **argv) {
     initScreen();
     ck.filename = argv[1];
     loadUserProgram(argv[1]);
+    editorLoadProgram(ck.filename);
     while(1) {
+        resetProgram();
         while(!processSdlEvents());
         E.lastevent = time(NULL);
         while(!editorEvents());
