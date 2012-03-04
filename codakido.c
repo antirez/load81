@@ -704,6 +704,12 @@ void editorRowInsertChar(erow *row, int at, int c) {
     row->size++;
 }
 
+void editorRowDelChar(erow *row, int at) {
+    if (row->size <= at) return;
+    memmove(row->chars+at,row->chars+at+1,row->size-at-1);
+    row->size--;
+}
+
 void editorInsertChar(int c) {
     int filerow = E.rowoff+E.cy;
     int filecol = E.coloff+E.cx;
@@ -719,6 +725,21 @@ void editorInsertChar(int c) {
         E.coloff++;
     else
         E.cx++;
+    E.lastevent = time(NULL);
+}
+
+void editorDelChar() {
+    int filerow = E.rowoff+E.cy;
+    int filecol = E.coloff+E.cx;
+    erow *row = (filerow >= E.numrows) ? NULL : &E.row[filerow];
+
+    if (!row || filecol == 0) return;
+    editorRowDelChar(row,filecol-1);
+    if (E.cx == 0 && E.coloff)
+        E.coloff--;
+    else
+        E.cx--;
+    E.lastevent = time(NULL);
 }
 
 int editorEvents(void) {
@@ -776,6 +797,7 @@ int editorEvents(void) {
                 editorMoveCursor(j);
                 break;
             case SDLK_BACKSPACE:
+                editorDelChar();
                 break;
             default:
                 editorInsertChar(j);
