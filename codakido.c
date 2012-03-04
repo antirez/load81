@@ -35,8 +35,19 @@
 
 #define DEFAULT_WIDTH 640
 #define DEFAULT_HEIGHT 640
-#define FONT_KERNING 10
+#define FONT_WIDTH 16
 #define FONT_HEIGHT 16
+#define FONT_KERNING 10
+
+/* ============================== Portable sleep ============================ */
+
+#ifdef WIN32
+#include <windows.h>
+#define sleep_milliseconds(x) Sleep(x)
+#else
+#include <unistd.h>
+#define sleep_milliseconds(x) usleep((x)*1000)
+#endif
 
 /* ============================= Data structures ============================ */
 
@@ -65,8 +76,10 @@ typedef struct erow {
     char *chars;
 } erow;
 
+#define KEY_MAX 512 /* Latest key is excluded */
 struct editorConfig {
     int cx,cy;  /* Cursor x and y position in characters */
+    unsigned char cblink; /* Show cursor if (cblink & 0x80) == 0 */
     int row;    /* Current cursor row position in file */
     int col;    /* Current cursor col position in file */
     int screenrows; /* Number of rows that we can show */
@@ -75,6 +88,8 @@ struct editorConfig {
     int coloff;     /* Column offset on screen */
     int numrows;    /* Number of rows */
     erow *rows;     /* Rows */
+    time_t lastevent;   /* Last event time, so we can go standby */
+    int key[KEY_MAX];   /* Remember if a key is pressed / repeated. */
 } E;
 
 /* ============================= Frame buffer ============================== */
@@ -533,9 +548,12 @@ int processSdlEvents(void) {
 void editorDrawCursor(void) {
     int x = E.cx*FONT_KERNING;
     int y = ck.height-((E.cy+1)*FONT_HEIGHT);
+    int margin = (FONT_WIDTH-FONT_KERNING)/2;
 
-    if (time(NULL) & 1) drawBox(ck.fb,x,y,x+FONT_KERNING-1,y+FONT_HEIGHT-1,
-                                165,165,255,1);
+    if (!(E.cblink & 0x80)) drawBox(ck.fb,x+margin,y,
+                                x+margin+FONT_KERNING-1,y+FONT_HEIGHT-1,
+                                165,165,255,.5);
+    E.cblink += 4;
 }
 
 void editorDrawChars(void) {
@@ -570,22 +588,65 @@ void editorInsertRow(int at, char *s) {
     E.numrows++;
 }
 
+/* As long as a key is pressed, we incremnet a counter in order to
+ * implement first pression of key and key repeating.
+ *
+ * This function returns if the key was just pressed or if it is repeating. */
+#define KEY_REPEAT_PERIOD 6
+#define KEY_REPEAT_DELAY 32
+int pressed_or_repeated(int counter) {
+    if (counter > 1 && counter < KEY_REPEAT_DELAY) return 0;
+    return ((counter+KEY_REPEAT_PERIOD-1) % KEY_REPEAT_PERIOD) == 0;
+}
+
 int editorEvents(void) {
     SDL_Event event;
+    int j, ksym;
+
+    /* Sleep 0.25 seconds if no body is pressing any key for more than 1
+     * second. This way we can save tons of energy when in editing mode and
+     * the user is thinking or away from keyboard. */
+    if (time(NULL)-E.lastevent > 1) {
+        sleep_milliseconds(250);
+        E.cblink = 0;
+    }
 
     if (SDL_PollEvent(&event)) {
+        E.lastevent = time(NULL);
         switch(event.type) {
+        /* Key pressed */
         case SDL_KEYDOWN:
-            switch(event.key.keysym.sym) {
+            ksym = event.key.keysym.sym;
+            switch(ksym) {
             case SDLK_ESCAPE:
                 return 1;
                 break;
             default:
-                /* Insert char */
+                if (ksym >= 0 && ksym < KEY_MAX) E.key[ksym] = 1;
                 break;
             }
             break;
+
+        /* Key released */
+        case SDL_KEYUP:
+            ksym = event.key.keysym.sym;
+            if (ksym >= 0 && ksym < KEY_MAX) E.key[ksym] = 0;
+            break;
         }
+    }
+
+    /* Convert events into actions */
+    for (j = 0; j < KEY_MAX; j++) {
+        if (pressed_or_repeated(E.key[j])) {
+            E.lastevent = time(NULL);
+            switch(j) {
+            case SDLK_LEFT: E.cx -= 1; E.cblink = 0; break;
+            case SDLK_RIGHT: E.cx += 1; E.cblink = 0; break;
+            case SDLK_UP: E.cy -= 1; E.cblink = 0; break;
+            case SDLK_DOWN: E.cy += 1; E.cblink = 0; break;
+            }
+        }
+        if (E.key[j]) E.key[j]++; /* auto repeat counter */
     }
 
     /* Call the draw function at every iteration.  */
@@ -650,6 +711,7 @@ void initConfig(void) {
 void initEditor(void) {
     E.cx = 0;
     E.cy = 0;
+    E.cblink = 0;
     E.row = 0;
     E.col = 0;
     E.rowoff = 0;
@@ -658,6 +720,7 @@ void initEditor(void) {
     E.rows = NULL;
     E.screencols = ck.width / FONT_KERNING;
     E.screenrows = ck.height / FONT_HEIGHT;
+    memset(E.key,0,sizeof(E.key));
     editorInsertRow(E.numrows,"foo");
     editorInsertRow(E.numrows,"Foo BARED");
 }
@@ -685,6 +748,7 @@ int main(int argc, char **argv) {
     loadUserProgram(argv[1]);
     while(1) {
         while(!processSdlEvents());
+        E.lastevent = time(NULL);
         while(!editorEvents());
     }
     return 0;
