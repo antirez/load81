@@ -696,6 +696,31 @@ void editorMoveCursor(int key) {
     E.cblink = 0;
 }
 
+void editorRowInsertChar(erow *row, int at, int c) {
+    /* Make space for 1 new char, 1 null term. */
+    row->chars = realloc(row->chars,row->size+2);
+    memmove(row->chars+at+1,row->chars+at,row->size-at);
+    row->chars[at] = c;
+    row->size++;
+}
+
+void editorInsertChar(int c) {
+    int filerow = E.rowoff+E.cy;
+    int filecol = E.coloff+E.cx;
+    erow *row = (filerow >= E.numrows) ? NULL : &E.row[filerow];
+
+    if (!row) {
+        while(E.numrows < filerow)
+            editorInsertRow(E.numrows,"");
+        row = &E.row[filerow];
+    }
+    editorRowInsertChar(row,filecol,c);
+    if (E.cx == E.screencols-1)
+        E.coloff++;
+    else
+        E.cx++;
+}
+
 int editorEvents(void) {
     SDL_Event event;
     int j, ksym;
@@ -749,6 +774,11 @@ int editorEvents(void) {
             case SDLK_UP:
             case SDLK_DOWN:
                 editorMoveCursor(j);
+                break;
+            case SDLK_BACKSPACE:
+                break;
+            default:
+                editorInsertChar(j);
                 break;
             }
         }
