@@ -84,15 +84,13 @@ typedef struct erow {
 struct editorConfig {
     int cx,cy;  /* Cursor x and y position in characters */
     unsigned char cblink; /* Show cursor if (cblink & 0x80) == 0 */
-    int row;    /* Current cursor row position in file */
-    int col;    /* Current cursor col position in file */
     int screenrows; /* Number of rows that we can show */
     int screencols; /* Number of cols that we can show */
     int margin_top, margin_bottom, margin_left, margin_right;
     int rowoff;     /* Row offset on screen */
     int coloff;     /* Column offset on screen */
     int numrows;    /* Number of rows */
-    erow *rows;     /* Rows */
+    erow *row;      /* Rows */
     time_t lastevent;   /* Last event time, so we can go standby */
     int key[KEY_MAX];   /* Remember if a key is pressed / repeated. */
 } E;
@@ -558,7 +556,7 @@ void editorDrawChars(void) {
 
     for (y = 0; y < E.screenrows; y++) {
         if (E.rowoff+y >= E.numrows) break;
-        r = &E.rows[E.rowoff+y];
+        r = &E.row[E.rowoff+y];
         for (x = 0; x < E.screencols; x++) {
             int idx = x+E.coloff;
             int charx,chary;
@@ -597,9 +595,9 @@ void editorDraw() {
 }
 
 void editorInsertRow(int at, char *s) {
-    E.rows = realloc(E.rows,sizeof(erow)*(E.numrows+1));
-    E.rows[E.numrows].size = strlen(s);
-    E.rows[E.numrows].chars = strdup(s);
+    E.row = realloc(E.row,sizeof(erow)*(E.numrows+1));
+    E.row[E.numrows].size = strlen(s);
+    E.row[E.numrows].chars = strdup(s);
     E.numrows++;
 }
 
@@ -614,14 +612,14 @@ char *editorRowsToString(int *buflen) {
 
     /* Compute count of bytes */
     for (j = 0; j < E.numrows; j++)
-        totlen += E.rows[j].size+1; /* +1 is for "\n" at end of every row */
+        totlen += E.row[j].size+1; /* +1 is for "\n" at end of every row */
     *buflen = totlen;
     totlen++; /* Also make space for nulterm */
 
     p = buf = malloc(totlen);
     for (j = 0; j < E.numrows; j++) {
-        memcpy(p,E.rows[j].chars,E.rows[j].size);
-        p += E.rows[j].size;
+        memcpy(p,E.row[j].chars,E.row[j].size);
+        p += E.row[j].size;
         *p = '\n';
         p++;
     }
@@ -634,10 +632,18 @@ char *editorRowsToString(int *buflen) {
  *
  * This function returns if the key was just pressed or if it is repeating. */
 #define KEY_REPEAT_PERIOD 4
+#define KEY_REPEAT_PERIOD_FAST 1
 #define KEY_REPEAT_DELAY 16
 int pressed_or_repeated(int counter) {
+    int period;
+
+    if (counter > KEY_REPEAT_DELAY+(KEY_REPEAT_PERIOD*3)) {
+        period = KEY_REPEAT_PERIOD_FAST;
+    } else {
+        period = KEY_REPEAT_PERIOD;
+    }
     if (counter > 1 && counter < KEY_REPEAT_DELAY) return 0;
-    return ((counter+KEY_REPEAT_PERIOD-1) % KEY_REPEAT_PERIOD) == 0;
+    return ((counter+period-1) % period) == 0;
 }
 
 void editorMouseClicked(int x, int y, int button) {
@@ -646,6 +652,48 @@ void editorMouseClicked(int x, int y, int button) {
     {
         exit(1);
     }
+}
+
+void editorMoveCursor(int key) {
+    int filerow = E.rowoff+E.cy;
+    int filecol = E.coloff+E.cx;
+    erow *row = (filerow >= E.numrows) ? NULL : &E.row[filerow];
+
+    switch(key) {
+    case SDLK_LEFT:
+        if (E.cx == 0) {
+            if (E.coloff) E.coloff--;
+        } else {
+            E.cx -= 1;
+        }
+        break;
+    case SDLK_RIGHT:
+        if (row && filecol < row->size) {
+            if (E.cx == E.screencols-1) {
+                E.coloff++;
+            } else {
+                E.cx += 1;
+            }
+        }
+        break;
+    case SDLK_UP:
+        if (E.cy == 0) {
+            if (E.rowoff) E.rowoff--;
+        } else {
+            E.cy -= 1;
+        }
+        break;
+    case SDLK_DOWN:
+        if (filerow < E.numrows) {
+            if (E.cy == E.screenrows-1) {
+                E.rowoff++;
+            } else {
+                E.cy += 1;
+            }
+        }
+        break;
+    }
+    E.cblink = 0;
 }
 
 int editorEvents(void) {
@@ -696,10 +744,12 @@ int editorEvents(void) {
         if (pressed_or_repeated(E.key[j])) {
             E.lastevent = time(NULL);
             switch(j) {
-            case SDLK_LEFT: E.cx -= 1; E.cblink = 0; break;
-            case SDLK_RIGHT: E.cx += 1; E.cblink = 0; break;
-            case SDLK_UP: E.cy -= 1; E.cblink = 0; break;
-            case SDLK_DOWN: E.cy += 1; E.cblink = 0; break;
+            case SDLK_LEFT:
+            case SDLK_RIGHT:
+            case SDLK_UP:
+            case SDLK_DOWN:
+                editorMoveCursor(j);
+                break;
             }
         }
         if (E.key[j]) E.key[j]++; /* auto repeat counter */
@@ -772,12 +822,10 @@ void initEditor(void) {
     E.cx = 0;
     E.cy = 0;
     E.cblink = 0;
-    E.row = 0;
-    E.col = 0;
     E.rowoff = 0;
     E.coloff = 0;
     E.numrows = 0;
-    E.rows = NULL;
+    E.row = NULL;
     E.margin_top = E.margin_bottom = E.margin_left = E.margin_right = 30;
     E.screencols = (ck.width-E.margin_left-E.margin_right) / FONT_KERNING;
     E.screenrows = (ck.height-E.margin_top-E.margin_bottom) / FONT_HEIGHT;
