@@ -34,11 +34,14 @@
 
 #define NOTUSED(V) ((void) V)
 
-#define DEFAULT_WIDTH 640
-#define DEFAULT_HEIGHT 640
+#define DEFAULT_WIDTH 800
+#define DEFAULT_HEIGHT 600
 #define FONT_WIDTH 16
 #define FONT_HEIGHT 16
 #define FONT_KERNING 10
+
+#define POWEROFF_BUTTON_X   (ck.width-18)
+#define POWEROFF_BUTTON_Y   18
 
 /* ============================== Portable sleep ============================ */
 
@@ -338,17 +341,6 @@ void setTableField(char *name, char *field, char *s, lua_Number n) {
     lua_pop(ck.L,1);
 }
 
-void loadUserProgram(char *filename) {
-    if (luaL_loadfile(ck.L,filename)) {
-        fprintf(stderr, "Couldn't load file: %s\n", lua_tostring(ck.L, -1));
-        exit(1);
-    }
-    if (lua_pcall(ck.L,0,0,0)) {
-        fprintf(stderr, "Error running script: %s\n", lua_tostring(ck.L,-1));
-        exit(1);
-    }
-}
-
 /* ============================= Lua bindings ============================== */
 int fillBinding(lua_State *L) {
     ck.r = lua_tonumber(L,-4);
@@ -581,6 +573,13 @@ void editorDrawChars(void) {
     }
 }
 
+void editorDrawPowerOff(int x, int y) {
+    drawEllipse(ck.fb,x,y,12,12,66,66,231,1);
+    drawEllipse(ck.fb,x,y,7,7,165,165,255,1);
+    drawBox(ck.fb,x-4,y,x+4,y+12,165,165,255,1);
+    drawBox(ck.fb,x-2,y,x+2,y+14,66,66,231,1);
+}
+
 void editorDraw() {
     drawBox(ck.fb,0,0,ck.width-1,ck.height-1,165,165,255,1);
     drawBox(ck.fb,
@@ -590,6 +589,8 @@ void editorDraw() {
             ck.height-1-E.margin_bottom,66,66,231,1);
     editorDrawChars();
     editorDrawCursor();
+    /* Show buttons */
+    editorDrawPowerOff(POWEROFF_BUTTON_X,POWEROFF_BUTTON_Y);
     /* Show info about the current file */
     bfWriteString(ck.fb,E.margin_left,ck.width-E.margin_top+2,ck.filename,
         strlen(ck.filename), 255,255,255,1);
@@ -602,26 +603,62 @@ void editorInsertRow(int at, char *s) {
     E.numrows++;
 }
 
+/* Turn the editor rows into a single heap-allocated string.
+ * Returns the pointer to the heap-allocated string and populate the
+ * integer pointed by 'buflen' with the size of the string, escluding
+ * the final nulterm. */
+char *editorRowsToString(int *buflen) {
+    char *buf = NULL, *p;
+    int totlen = 0;
+    int j;
+
+    /* Compute count of bytes */
+    for (j = 0; j < E.numrows; j++)
+        totlen += E.rows[j].size+1; /* +1 is for "\n" at end of every row */
+    *buflen = totlen;
+    totlen++; /* Also make space for nulterm */
+
+    p = buf = malloc(totlen);
+    for (j = 0; j < E.numrows; j++) {
+        memcpy(p,E.rows[j].chars,E.rows[j].size);
+        p += E.rows[j].size;
+        *p = '\n';
+        p++;
+    }
+    *p = '\0';
+    return buf;
+}
+
 /* As long as a key is pressed, we incremnet a counter in order to
  * implement first pression of key and key repeating.
  *
  * This function returns if the key was just pressed or if it is repeating. */
-#define KEY_REPEAT_PERIOD 6
-#define KEY_REPEAT_DELAY 32
+#define KEY_REPEAT_PERIOD 4
+#define KEY_REPEAT_DELAY 16
 int pressed_or_repeated(int counter) {
     if (counter > 1 && counter < KEY_REPEAT_DELAY) return 0;
     return ((counter+KEY_REPEAT_PERIOD-1) % KEY_REPEAT_PERIOD) == 0;
 }
 
+void editorMouseClicked(int x, int y, int button) {
+    if (abs(x-POWEROFF_BUTTON_X) < 15 && abs(y-POWEROFF_BUTTON_Y) < 15 &&
+        button == 1)
+    {
+        exit(1);
+    }
+}
+
 int editorEvents(void) {
     SDL_Event event;
     int j, ksym;
+    time_t idletime;
 
-    /* Sleep 0.25 seconds if no body is pressing any key for more than 1
-     * second. This way we can save tons of energy when in editing mode and
+    /* Sleep 0.25 seconds if no body is pressing any key for a few seconds.
+     * This way we can save tons of energy when in editing mode and
      * the user is thinking or away from keyboard. */
-    if (time(NULL)-E.lastevent > 1) {
-        sleep_milliseconds(250);
+    idletime = time(NULL)-E.lastevent;
+    if (idletime > 5) {
+        sleep_milliseconds((idletime < 60) ? 50 : 250);
         E.cblink = 0;
     }
 
@@ -645,6 +682,11 @@ int editorEvents(void) {
         case SDL_KEYUP:
             ksym = event.key.keysym.sym;
             if (ksym >= 0 && ksym < KEY_MAX) E.key[ksym] = 0;
+            break;
+        /* Mouse click */
+        case SDL_MOUSEBUTTONDOWN:
+            editorMouseClicked(event.motion.x, ck.height-1-event.motion.y,
+                               event.button.button);
             break;
         }
     }
@@ -673,17 +715,87 @@ int editorEvents(void) {
 /* =========================== Initialization ============================== */
 
 void initConfig(void) {
+    ck.screen = NULL;
+    ck.width = DEFAULT_WIDTH;
+    ck.height = DEFAULT_HEIGHT;
+    ck.r = 255;
+    ck.g = ck.b = 0;
+    ck.alpha = 1;
+    ck.L = NULL;
+
+    /* Load the bitmap font */
+    bfLoadFont((char**)ck.font);
+}
+
+/* Load the specified program in the editor memory and returns 0 on success
+ * or 1 on error. */
+int editorOpenProgram(char *filename) {
+    FILE *fp;
+    char line[1024];
+
+    /* TODO: remove old program from rows. */
+    fp = fopen(filename,"r");
+    if (!fp) {
+        perror("fopen loading program into editor");
+        return 1;
+    }
+    while(fgets(line,sizeof(line),fp) != NULL) {
+        int l = strlen(line);
+
+        if (l && (line[l-1] == '\n' || line[l-1] == '\r'))
+            line[l-1] = '\0';
+        editorInsertRow(E.numrows,line);
+    }
+    fclose(fp);
+    return 0;
+}
+
+/* Load the editor program into Lua. Returns 0 on success, 1 on error. */
+int loadProgram(void) {
+    int buflen;
+    char *buf = editorRowsToString(&buflen);
+
+    if (luaL_loadbuffer(ck.L,buf,buflen,ck.filename)) {
+        fprintf(stderr, "Couldn't load file: %s\n", lua_tostring(ck.L, -1));
+        free(buf);
+        return 1;
+    }
+    free(buf);
+    if (lua_pcall(ck.L,0,0,0)) {
+        fprintf(stderr, "Error running script: %s\n", lua_tostring(ck.L,-1));
+        return 1;
+    }
+    return 0;
+}
+
+void initEditor(void) {
+    E.cx = 0;
+    E.cy = 0;
+    E.cblink = 0;
+    E.row = 0;
+    E.col = 0;
+    E.rowoff = 0;
+    E.coloff = 0;
+    E.numrows = 0;
+    E.rows = NULL;
+    E.margin_top = E.margin_bottom = E.margin_left = E.margin_right = 30;
+    E.screencols = (ck.width-E.margin_left-E.margin_right) / FONT_KERNING;
+    E.screenrows = (ck.height-E.margin_top-E.margin_bottom) / FONT_HEIGHT;
+    memset(E.key,0,sizeof(E.key));
+}
+
+void initScreen(void) {
+    ck.fb = createFrameBuffer(ck.width,ck.height);
+    ck.screen = sdlInit(ck.width,ck.height,0);
+}
+
+void resetProgram(void) {
     char *initscript =
         "keyboard={}; keyboard['pressed']={};"
         "mouse={}; mouse['pressed']={};";
 
-    ck.screen = NULL;
-    ck.width = DEFAULT_WIDTH;
-    ck.height = DEFAULT_HEIGHT;
     ck.epoch = 0;
-    ck.r = 255;
-    ck.g = ck.b = 0;
-    ck.alpha = 1;
+    if (ck.L) lua_close(ck.L);
     ck.L = lua_open();
     luaopen_base(ck.L);
     luaopen_table(ck.L);
@@ -717,60 +829,6 @@ void initConfig(void) {
     lua_setglobal(ck.L,"line");
     lua_pushcfunction(ck.L,textBinding);
     lua_setglobal(ck.L,"text");
-
-    /* Load the bitmap font */
-    bfLoadFont((char**)ck.font);
-}
-
-/* Load the specified program in the editor memory and returns 0 on success
- * or 1 on error. */
-int editorLoadProgram(char *filename) {
-    FILE *fp;
-    char line[1024];
-
-    /* TODO: remove old program from rows. */
-    fp = fopen(filename,"r");
-    if (!fp) {
-        perror("fopen loading program into editor");
-        return 1;
-    }
-    while(fgets(line,sizeof(line),fp) != NULL) {
-        int l = strlen(line);
-
-        if (l && (line[l-1] == '\n' || line[l-1] == '\r'))
-            line[l-1] = '\0';
-        editorInsertRow(E.numrows,line);
-    }
-    fclose(fp);
-    return 0;
-}
-
-void initEditor(void) {
-    E.cx = 0;
-    E.cy = 0;
-    E.cblink = 0;
-    E.row = 0;
-    E.col = 0;
-    E.rowoff = 0;
-    E.coloff = 0;
-    E.numrows = 0;
-    E.rows = NULL;
-    E.margin_top = E.margin_bottom = E.margin_left = E.margin_right = 30;
-    E.screencols = (ck.width-E.margin_left-E.margin_right) / FONT_KERNING;
-    E.screenrows = (ck.height-E.margin_top-E.margin_bottom) / FONT_HEIGHT;
-    memset(E.key,0,sizeof(E.key));
-}
-
-void initScreen(void) {
-    ck.fb = createFrameBuffer(ck.width,ck.height);
-    ck.screen = sdlInit(ck.width,ck.height,0);
-}
-
-void resetProgram(void) {
-    /* TODO: create Lua interpreter */
-    /* Reset everything */
-    /* Load program into Lua and compile */
-    ck.epoch = 0;
 }
 
 /* ================================= Main ================================== */
@@ -788,10 +846,10 @@ int main(int argc, char **argv) {
     initEditor();
     initScreen();
     ck.filename = argv[1];
-    loadUserProgram(argv[1]);
-    editorLoadProgram(ck.filename);
+    editorOpenProgram(ck.filename);
     while(1) {
         resetProgram();
+        loadProgram();
         while(!processSdlEvents());
         E.lastevent = time(NULL);
         while(!editorEvents());
