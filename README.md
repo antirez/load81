@@ -1,19 +1,19 @@
 README
 ===
 
-Codakido is an attempt at creating a Codea-inspired environment to teach
+Load81 is an attempt at creating a Codea-inspired environment to teach
 children how to write Lua programs. It features a graphical programming
 environment and a Commdore-64 style integrated editor so that the programmer
 is confined into a friendly environment with a simple editor:
 
-![Codakido Screenshot 1](http://antirez.com/misc/codakido_screenshot_1.png)
+![Load81 Screenshot 1](http://antirez.com/misc/codakido_screenshot_1.png)
 
 The following is a screenshot of the running program. The programmer can
 currently switch between edit and play mode pressing the ESC key.
 
-![Codakido Screenshot 2](http://antirez.com/misc/codakido_screenshot_2.png)
+![Load81 Screenshot 2](http://antirez.com/misc/codakido_screenshot_2.png)
 
-Codakido is written in ANSI C and uses SDL, so should compile on Mac OS X, Linux
+Load81 is written in ANSI C and uses SDL, so should compile on Mac OS X, Linux
 and Windows without issues.
 
 The coordinate system and the basic drawing functions are compatible with
@@ -21,7 +21,7 @@ Codea (check http://twolivesleft.com/Codea/ for more information), but there
 is no support for stroke.
 
 There is no aim at Codea compatibility, but who is familiar with Codea should
-feel at home with CodaKido in terms of API and structure of the program.
+feel at home with Load81 in terms of API and structure of the program.
 
 I wrote it mainly because I and my children have fun with Codea but we don't
 have an iPad at home, and using a real keyboard sometimes can be less
@@ -30,9 +30,9 @@ frustrating.
 USAGE
 ===
 
-Start codakido with:
+Start Load81 with:
 
-    ./codakido example.lua
+    ./load81 example.lua
 
 To switch between program and editor mode press the ESC key.
 
@@ -100,5 +100,5 @@ Mouse buttons are called '1', '2', '3', ... and so forth.
 LICENSE
 ===
 
-Codakido was written by Salvatore Sanfilippo and is released under the
+Load81 was written by Salvatore Sanfilippo and is released under the
 BSD two-clause license, see the COPYING file for more information.
