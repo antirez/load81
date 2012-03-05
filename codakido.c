@@ -31,6 +31,7 @@
 #include <lauxlib.h>
 #include <lualib.h>
 #include <errno.h>
+#include <ctype.h>
 
 #define NOTUSED(V) ((void) V)
 
@@ -80,6 +81,11 @@ typedef struct erow {
     char *chars;
 } erow;
 
+typedef struct keyState {
+    char translation;
+    int counter;
+} keyState;
+
 #define KEY_MAX 512 /* Latest key is excluded */
 struct editorConfig {
     int cx,cy;  /* Cursor x and y position in characters */
@@ -92,7 +98,7 @@ struct editorConfig {
     int numrows;    /* Number of rows */
     erow *row;      /* Rows */
     time_t lastevent;   /* Last event time, so we can go standby */
-    int key[KEY_MAX];   /* Remember if a key is pressed / repeated. */
+    keyState key[KEY_MAX];   /* Remember if a key is pressed / repeated. */
 } E;
 
 /* ============================= Frame buffer ============================== */
@@ -121,6 +127,10 @@ SDL_Surface *sdlInit(int width, int height, int fullscreen) {
         fprintf(stderr, "Can't set the video mode: %s\n", SDL_GetError());
         return NULL;
     }
+    /* Unicode support makes dealing with text input in SDL much simpler as
+     * keys are translated into characters with automatic support for modifiers
+     * (for instance shift modifier to print capital letters and symbols). */
+    SDL_EnableUNICODE(SDL_ENABLE);
     return screen;
 }
 
@@ -535,7 +545,172 @@ int processSdlEvents(void) {
     return 0;
 }
 
-/* ================================= Editor ================================= */
+/* ======================= Editor rows implementation ======================= */
+
+/* Insert a row at the specified position, shifting the other rows on the bottom
+ * if required. */
+void editorInsertRow(int at, char *s) {
+    if (at > E.numrows) return;
+    E.row = realloc(E.row,sizeof(erow)*(E.numrows+1));
+    if (at != E.numrows)
+        memmove(E.row+at+1,E.row+at,sizeof(E.row[0])*(E.numrows-at));
+    E.row[at].size = strlen(s);
+    E.row[at].chars = strdup(s);
+    E.numrows++;
+}
+
+/* Remove the row at the specified position, shifting the remainign on the
+ * top. */
+void editorDelRow(int at) {
+    if (at >= E.numrows) return;
+    memmove(E.row+at,E.row+at+1,sizeof(E.row[0])*(E.numrows-at-1));
+    E.numrows--;
+}
+
+/* Turn the editor rows into a single heap-allocated string.
+ * Returns the pointer to the heap-allocated string and populate the
+ * integer pointed by 'buflen' with the size of the string, escluding
+ * the final nulterm. */
+char *editorRowsToString(int *buflen) {
+    char *buf = NULL, *p;
+    int totlen = 0;
+    int j;
+
+    /* Compute count of bytes */
+    for (j = 0; j < E.numrows; j++)
+        totlen += E.row[j].size+1; /* +1 is for "\n" at end of every row */
+    *buflen = totlen;
+    totlen++; /* Also make space for nulterm */
+
+    p = buf = malloc(totlen);
+    for (j = 0; j < E.numrows; j++) {
+        memcpy(p,E.row[j].chars,E.row[j].size);
+        p += E.row[j].size;
+        *p = '\n';
+        p++;
+    }
+    *p = '\0';
+    return buf;
+}
+
+/* Insert a character at the specified position in a row, moving the remaining
+ * chars on the right if needed. */
+void editorRowInsertChar(erow *row, int at, int c) {
+    if (at > row->size) {
+        /* Pad the string with spaces if the insert location is outside the
+         * current length by more than a single character. */
+        int padlen = at-row->size;
+        /* In the next line +2 means: new char and null term. */
+        row->chars = realloc(row->chars,row->size+padlen+2);
+        memset(row->chars+row->size,' ',padlen);
+        row->chars[row->size+padlen+1] = '\0';
+        row->size += padlen+1;
+    } else {
+        /* If we are in the middle of the string just make space for 1 new
+         * char plus the (already existing) null term. */
+        row->chars = realloc(row->chars,row->size+2);
+        memmove(row->chars+at+1,row->chars+at,row->size-at);
+        row->size++;
+    }
+    row->chars[at] = c;
+}
+
+/* Append the string 's' at the end of a row */
+void editorRowAppendString(erow *row, char *s) {
+    int l = strlen(s);
+
+    row->chars = realloc(row->chars,row->size+l+1);
+    memcpy(row->chars+row->size,s,l);
+    row->size += l;
+    row->chars[row->size] = '\0';
+}
+
+void editorRowDelChar(erow *row, int at) {
+    if (row->size <= at) return;
+    memmove(row->chars+at,row->chars+at+1,row->size-at);
+    row->size--;
+}
+
+void editorInsertChar(int c) {
+    int filerow = E.rowoff+E.cy;
+    int filecol = E.coloff+E.cx;
+    erow *row = (filerow >= E.numrows) ? NULL : &E.row[filerow];
+
+    /* If the row where the cursor is currently located does not exist in our
+     * logical representaion of the file, add enough empty rows as needed. */
+    if (!row) {
+        while(E.numrows <= filerow)
+            editorInsertRow(E.numrows,"");
+    }
+    row = &E.row[filerow];
+    editorRowInsertChar(row,filecol,c);
+    if (E.cx == E.screencols-1)
+        E.coloff++;
+    else
+        E.cx++;
+}
+
+/* Inserting a newline is slightly complex as we have to handle inserting a
+ * newline in the middle of a line, splitting the line as needed. */
+void editorInsertNewline(void) {
+    int filerow = E.rowoff+E.cy;
+    int filecol = E.coloff+E.cx;
+    erow *row = (filerow >= E.numrows) ? NULL : &E.row[filerow];
+
+    if (!row) return;
+    /* If the cursor is over the current line size, we want to conceptually
+     * think it's just over the last character. */
+    if (filecol >= row->size) filecol = row->size;
+    if (filecol == 0) {
+        editorInsertRow(filerow,"");
+    } else {
+        /* We are in the middle of a line. Split it between two rows. */
+        editorInsertRow(filerow+1,row->chars+filecol);
+        row = &E.row[filerow];
+        row->chars[filecol] = '\0';
+        row->size = filecol;
+    }
+    if (E.cy == E.screenrows-1) {
+        E.rowoff++;
+    } else {
+        E.cy++;
+    }
+    E.cx = 0;
+    E.coloff = 0;
+}
+
+void editorDelChar() {
+    int filerow = E.rowoff+E.cy;
+    int filecol = E.coloff+E.cx;
+    erow *row = (filerow >= E.numrows) ? NULL : &E.row[filerow];
+
+    if (!row || (filecol == 0 && filerow == 0)) return;
+    if (filecol == 0) {
+        /* Handle the case of column 0, we need to move the current line
+         * on the right of the previous one. */
+        filecol = E.row[filerow-1].size;
+        editorRowAppendString(&E.row[filerow-1],row->chars);
+        editorDelRow(filerow);
+        if (E.cy == 0)
+            E.rowoff--;
+        else
+            E.cy--;
+        E.cx = filecol;
+        if (E.cx >= E.screencols) {
+            int shift = (E.screencols-E.cx)+1;
+            E.cx -= shift;
+            E.coloff += shift;
+        }
+    } else {
+        editorRowDelChar(row,filecol-1);
+        if (E.cx == 0 && E.coloff)
+            E.coloff--;
+        else
+            E.cx--;
+    }
+}
+
+/* ============================= Editor drawing ============================= */
 
 void editorDrawCursor(void) {
     int x = E.cx*FONT_KERNING;
@@ -594,38 +769,7 @@ void editorDraw() {
         strlen(ck.filename), 255,255,255,1);
 }
 
-void editorInsertRow(int at, char *s) {
-    E.row = realloc(E.row,sizeof(erow)*(E.numrows+1));
-    E.row[E.numrows].size = strlen(s);
-    E.row[E.numrows].chars = strdup(s);
-    E.numrows++;
-}
-
-/* Turn the editor rows into a single heap-allocated string.
- * Returns the pointer to the heap-allocated string and populate the
- * integer pointed by 'buflen' with the size of the string, escluding
- * the final nulterm. */
-char *editorRowsToString(int *buflen) {
-    char *buf = NULL, *p;
-    int totlen = 0;
-    int j;
-
-    /* Compute count of bytes */
-    for (j = 0; j < E.numrows; j++)
-        totlen += E.row[j].size+1; /* +1 is for "\n" at end of every row */
-    *buflen = totlen;
-    totlen++; /* Also make space for nulterm */
-
-    p = buf = malloc(totlen);
-    for (j = 0; j < E.numrows; j++) {
-        memcpy(p,E.row[j].chars,E.row[j].size);
-        p += E.row[j].size;
-        *p = '\n';
-        p++;
-    }
-    *p = '\0';
-    return buf;
-}
+/* ========================= Editor events handling  ======================== */
 
 /* As long as a key is pressed, we incremnet a counter in order to
  * implement first pression of key and key repeating.
@@ -693,53 +837,6 @@ void editorMoveCursor(int key) {
         }
         break;
     }
-    E.cblink = 0;
-}
-
-void editorRowInsertChar(erow *row, int at, int c) {
-    /* Make space for 1 new char, 1 null term. */
-    row->chars = realloc(row->chars,row->size+2);
-    memmove(row->chars+at+1,row->chars+at,row->size-at);
-    row->chars[at] = c;
-    row->size++;
-}
-
-void editorRowDelChar(erow *row, int at) {
-    if (row->size <= at) return;
-    memmove(row->chars+at,row->chars+at+1,row->size-at-1);
-    row->size--;
-}
-
-void editorInsertChar(int c) {
-    int filerow = E.rowoff+E.cy;
-    int filecol = E.coloff+E.cx;
-    erow *row = (filerow >= E.numrows) ? NULL : &E.row[filerow];
-
-    if (!row) {
-        while(E.numrows < filerow)
-            editorInsertRow(E.numrows,"");
-        row = &E.row[filerow];
-    }
-    editorRowInsertChar(row,filecol,c);
-    if (E.cx == E.screencols-1)
-        E.coloff++;
-    else
-        E.cx++;
-    E.lastevent = time(NULL);
-}
-
-void editorDelChar() {
-    int filerow = E.rowoff+E.cy;
-    int filecol = E.coloff+E.cx;
-    erow *row = (filerow >= E.numrows) ? NULL : &E.row[filerow];
-
-    if (!row || filecol == 0) return;
-    editorRowDelChar(row,filecol-1);
-    if (E.cx == 0 && E.coloff)
-        E.coloff--;
-    else
-        E.cx--;
-    E.lastevent = time(NULL);
 }
 
 int editorEvents(void) {
@@ -767,7 +864,10 @@ int editorEvents(void) {
                 return 1;
                 break;
             default:
-                if (ksym >= 0 && ksym < KEY_MAX) E.key[ksym] = 1;
+                if (ksym >= 0 && ksym < KEY_MAX) {
+                    E.key[ksym].counter = 1;
+                    E.key[ksym].translation = (event.key.keysym.unicode & 0xff);
+                }
                 break;
             }
             break;
@@ -775,7 +875,7 @@ int editorEvents(void) {
         /* Key released */
         case SDL_KEYUP:
             ksym = event.key.keysym.sym;
-            if (ksym >= 0 && ksym < KEY_MAX) E.key[ksym] = 0;
+            if (ksym >= 0 && ksym < KEY_MAX) E.key[ksym].counter = 0;
             break;
         /* Mouse click */
         case SDL_MOUSEBUTTONDOWN:
@@ -787,8 +887,11 @@ int editorEvents(void) {
 
     /* Convert events into actions */
     for (j = 0; j < KEY_MAX; j++) {
-        if (pressed_or_repeated(E.key[j])) {
+        int i;
+
+        if (pressed_or_repeated(E.key[j].counter)) {
             E.lastevent = time(NULL);
+            E.cblink = 0;
             switch(j) {
             case SDLK_LEFT:
             case SDLK_RIGHT:
@@ -799,12 +902,24 @@ int editorEvents(void) {
             case SDLK_BACKSPACE:
                 editorDelChar();
                 break;
+            case SDLK_RETURN:
+                editorInsertNewline();
+                break;
+            case SDLK_HOME:
+            case SDLK_LSHIFT:
+            case SDLK_RSHIFT:
+                /* Ignored */
+                break;
+            case SDLK_TAB:
+                for (i = 0; i < 4; i++)
+                    editorInsertChar(' ');
+                break;
             default:
-                editorInsertChar(j);
+                editorInsertChar(E.key[j].translation);
                 break;
             }
         }
-        if (E.key[j]) E.key[j]++; /* auto repeat counter */
+        if (E.key[j].counter) E.key[j].counter++; /* auto repeat counter */
     }
 
     /* Call the draw function at every iteration.  */
