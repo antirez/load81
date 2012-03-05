@@ -74,6 +74,8 @@ struct globalConfig {
     lua_State *L;
     unsigned char *font[256];
     char *filename;
+    char *luaerr;
+    int luaerrline;
 } ck;
 
 typedef struct erow {
@@ -349,6 +351,15 @@ void setTableField(char *name, char *field, char *s, lua_Number n) {
     lua_pop(ck.L,1);
 }
 
+/* Set the error string and the error line number. */
+void programError(const char *e) {
+    free(ck.luaerr);
+    ck.luaerr = strdup(e);
+    e = strstr(ck.luaerr,":");
+    if (e)
+        ck.luaerrline = atoi(e+1)-1;
+}
+
 /* ============================= Lua bindings ============================== */
 int fillBinding(lua_State *L) {
     ck.r = lua_tonumber(L,-4);
@@ -441,8 +452,7 @@ void setup(void) {
     lua_getglobal(ck.L,"setup");
     if (!lua_isnil(ck.L,-1)) {
         if (lua_pcall(ck.L,0,0,0)) {
-            printf("Setup: %s\n",lua_tostring(ck.L,-1));
-            exit(1);
+            programError(lua_tostring(ck.L, -1));
         }
     } else {
         lua_pop(ck.L,1);
@@ -453,8 +463,7 @@ void draw(void) {
     lua_getglobal(ck.L,"draw");
     if (!lua_isnil(ck.L,-1)) {
         if (lua_pcall(ck.L,0,0,0)) {
-            printf("Draw: %s\n",lua_tostring(ck.L,-1));
-            exit(1);
+            programError(lua_tostring(ck.L, -1));
         }
     } else {
         lua_pop(ck.L,1);
@@ -542,7 +551,8 @@ int processSdlEvents(void) {
     ck.epoch++;
     /* Refresh the screen */
     sdlShowRgb(ck.screen,ck.fb);
-    return 0;
+    /* Stop execution on error */
+    return ck.luaerr != NULL;
 }
 
 /* ======================= Editor rows implementation ======================= */
@@ -737,20 +747,30 @@ void editorDrawChars(void) {
     erow *r;
 
     for (y = 0; y < E.screenrows; y++) {
-        if (E.rowoff+y >= E.numrows) break;
-        r = &E.row[E.rowoff+y];
+        int filerow = E.rowoff+y;
+        if (filerow >= E.numrows) break;
+        r = &E.row[filerow];
         for (x = 0; x < E.screencols; x++) {
             int idx = x+E.coloff;
             int charx,chary;
+            int tr,tg,tb;
 
             if (idx >= r->size) break;
             charx = x*FONT_KERNING;
             chary = ck.height-((y+1)*FONT_HEIGHT);
             charx += E.margin_left;
             chary -= E.margin_top;
-            bfWriteChar(ck.fb,charx,chary,r->chars[idx],165,165,255,1);
+            if (ck.luaerr && ck.luaerrline == filerow) {
+                tr = 255; tg = 100, tb = 100;
+            } else {
+                tr = 165; tg = 165, tb = 255;
+            }
+            bfWriteChar(ck.fb,charx,chary,r->chars[idx],tr,tg,tb,1);
         }
     }
+    if (ck.luaerr)
+        bfWriteString(ck.fb,E.margin_left,10,ck.luaerr,strlen(ck.luaerr),
+                      0,0,0,1);
 }
 
 void editorDrawPowerOff(int x, int y) {
@@ -946,6 +966,8 @@ void initConfig(void) {
     ck.g = ck.b = 0;
     ck.alpha = 1;
     ck.L = NULL;
+    ck.luaerr = NULL;
+    ck.luaerrline = 0;
 
     /* Load the bitmap font */
     bfLoadFont((char**)ck.font);
@@ -980,15 +1002,16 @@ int loadProgram(void) {
     char *buf = editorRowsToString(&buflen);
 
     if (luaL_loadbuffer(ck.L,buf,buflen,ck.filename)) {
-        fprintf(stderr, "Couldn't load file: %s\n", lua_tostring(ck.L, -1));
+        programError(lua_tostring(ck.L, -1));
         free(buf);
         return 1;
     }
     free(buf);
     if (lua_pcall(ck.L,0,0,0)) {
-        fprintf(stderr, "Error running script: %s\n", lua_tostring(ck.L,-1));
+        programError(lua_tostring(ck.L, -1));
         return 1;
     }
+    ck.luaerr = NULL;
     return 0;
 }
 
@@ -1072,7 +1095,8 @@ int main(int argc, char **argv) {
     while(1) {
         resetProgram();
         loadProgram();
-        while(!processSdlEvents());
+        if (ck.luaerr == NULL)
+            while(!processSdlEvents());
         E.lastevent = time(NULL);
         while(!editorEvents());
     }
