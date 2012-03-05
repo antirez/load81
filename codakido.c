@@ -609,7 +609,7 @@ void editorRowInsertChar(erow *row, int at, int c) {
         /* If we are in the middle of the string just make space for 1 new
          * char plus the (already existing) null term. */
         row->chars = realloc(row->chars,row->size+2);
-        memmove(row->chars+at+1,row->chars+at,row->size-at);
+        memmove(row->chars+at+1,row->chars+at,row->size-at+1);
         row->size++;
     }
     row->chars[at] = c;
@@ -657,7 +657,13 @@ void editorInsertNewline(void) {
     int filecol = E.coloff+E.cx;
     erow *row = (filerow >= E.numrows) ? NULL : &E.row[filerow];
 
-    if (!row) return;
+    if (!row) {
+        if (filerow == E.numrows) {
+            editorInsertRow(filerow,"");
+            goto fixcursor;
+        }
+        return;
+    }
     /* If the cursor is over the current line size, we want to conceptually
      * think it's just over the last character. */
     if (filecol >= row->size) filecol = row->size;
@@ -670,6 +676,7 @@ void editorInsertNewline(void) {
         row->chars[filecol] = '\0';
         row->size = filecol;
     }
+fixcursor:
     if (E.cy == E.screenrows-1) {
         E.rowoff++;
     } else {
