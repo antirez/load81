@@ -1,11 +1,16 @@
 README
 ===
 
-Codakido is a (currently) rudimental attempt at creating a Codea-inspired
-environment to teach children how to write Lua programs.
+Codakido is an attempt at creating a Codea-inspired environment to teach
+children how to write Lua programs. It features a graphical programming
+environment and a Commdore-64 style integrated editor so that the programmer
+is confined into a friendly environment with a simple editor.
 
-It is written in ANSI C and uses SDL, so should compile on Mac OS X and Linux
-without issues.
+![Codakido Screenshot 1](http://antirez.com/misc/codakido_screenshot_1.png)
+![Codakido Screenshot 2](http://antirez.com/misc/codakido_screenshot_2.png)
+
+It is written in ANSI C and uses SDL, so should compile on Mac OS X, Linux
+and Windows without issues.
 
 The coordinate system and the basic drawing functions are compatible with
 Codea (check http://twolivesleft.com/Codea/ for more information), but there
@@ -21,9 +26,11 @@ frustrating.
 USAGE
 ===
 
+Start codakido with:
+
     ./codakido example.lua
 
-To stop the program press the ESC key.
+To switch between program and editor mode press the ESC key.
 
 Check the "examples" folder for small examples.
 
