@@ -27,6 +27,10 @@ I wrote it mainly because I and my children have fun with Codea but we don't
 have an iPad at home, and using a real keyboard sometimes can be less
 frustrating.
 
+The name Load81 originates from the fact that in popular Commondore home
+computers the command `LOAD "*",8,1` would load the first program on the disk
+starting from the file-specified memory location.
+
 USAGE
 ===
 
