@@ -43,6 +43,8 @@
 
 #define POWEROFF_BUTTON_X   (l81.width-18)
 #define POWEROFF_BUTTON_Y   18
+#define SAVE_BUTTON_X       (l81.width-E.margin_right-13)
+#define SAVE_BUTTON_Y       (l81.height-16)
 
 /* ============================== Portable sleep ============================ */
 
@@ -101,6 +103,7 @@ struct editorConfig {
     erow *row;      /* Rows */
     time_t lastevent;   /* Last event time, so we can go standby */
     keyState key[KEY_MAX];   /* Remember if a key is pressed / repeated. */
+    int dirty;      /* File modified but not saved. */
 } E;
 
 /* ============================= Frame buffer ============================== */
@@ -567,6 +570,7 @@ void editorInsertRow(int at, char *s) {
     E.row[at].size = strlen(s);
     E.row[at].chars = strdup(s);
     E.numrows++;
+    E.dirty++;
 }
 
 /* Remove the row at the specified position, shifting the remainign on the
@@ -575,6 +579,7 @@ void editorDelRow(int at) {
     if (at >= E.numrows) return;
     memmove(E.row+at,E.row+at+1,sizeof(E.row[0])*(E.numrows-at-1));
     E.numrows--;
+    E.dirty++;
 }
 
 /* Turn the editor rows into a single heap-allocated string.
@@ -623,6 +628,7 @@ void editorRowInsertChar(erow *row, int at, int c) {
         row->size++;
     }
     row->chars[at] = c;
+    E.dirty++;
 }
 
 /* Append the string 's' at the end of a row */
@@ -633,12 +639,14 @@ void editorRowAppendString(erow *row, char *s) {
     memcpy(row->chars+row->size,s,l);
     row->size += l;
     row->chars[row->size] = '\0';
+    E.dirty++;
 }
 
 void editorRowDelChar(erow *row, int at) {
     if (row->size <= at) return;
     memmove(row->chars+at,row->chars+at+1,row->size-at);
     row->size--;
+    E.dirty++;
 }
 
 void editorInsertChar(int c) {
@@ -658,6 +666,7 @@ void editorInsertChar(int c) {
         E.coloff++;
     else
         E.cx++;
+    E.dirty++;
 }
 
 /* Inserting a newline is slightly complex as we have to handle inserting a
@@ -725,6 +734,47 @@ void editorDelChar() {
         else
             E.cx--;
     }
+    E.dirty++;
+}
+
+/* Load the specified program in the editor memory and returns 0 on success
+ * or 1 on error. */
+int editorOpen(char *filename) {
+    FILE *fp;
+    char line[1024];
+
+    /* TODO: remove old program from rows. */
+    fp = fopen(filename,"r");
+    if (!fp) {
+        perror("fopen loading program into editor");
+        return 1;
+    }
+    while(fgets(line,sizeof(line),fp) != NULL) {
+        int l = strlen(line);
+
+        if (l && (line[l-1] == '\n' || line[l-1] == '\r'))
+            line[l-1] = '\0';
+        editorInsertRow(E.numrows,line);
+    }
+    fclose(fp);
+    E.dirty = 0;
+    return 0;
+}
+
+int editorSave(char *filename) {
+    int len;
+    char *buf = editorRowsToString(&len);
+    FILE *fp;
+
+    fp = fopen(filename,"w");
+    if (!fp) {
+        free(buf);
+        return 1;
+    }
+    fwrite(buf,len,1,fp);
+    fclose(fp);
+    free(buf);
+    return 0;
 }
 
 /* ============================= Editor drawing ============================= */
@@ -780,6 +830,12 @@ void editorDrawPowerOff(int x, int y) {
     drawBox(l81.fb,x-2,y,x+2,y+14,66,66,231,1);
 }
 
+void editorDrawSaveIcon(int x, int y) {
+    drawBox(l81.fb,x-12,y-12,x+12,y+12,66,66,231,1);
+    drawBox(l81.fb,x-1,y+7,x+1,y+11,165,165,255,1);
+    drawEllipse(l81.fb,x,y,4,4,165,165,255,1);
+}
+
 void editorDraw() {
     drawBox(l81.fb,0,0,l81.width-1,l81.height-1,165,165,255,1);
     drawBox(l81.fb,
@@ -791,8 +847,9 @@ void editorDraw() {
     editorDrawCursor();
     /* Show buttons */
     editorDrawPowerOff(POWEROFF_BUTTON_X,POWEROFF_BUTTON_Y);
+    if (E.dirty) editorDrawSaveIcon(SAVE_BUTTON_X,SAVE_BUTTON_Y);
     /* Show info about the current file */
-    bfWriteString(l81.fb,E.margin_left,l81.width-E.margin_top+2,l81.filename,
+    bfWriteString(l81.fb,E.margin_left,l81.height-E.margin_top+4,l81.filename,
         strlen(l81.filename), 255,255,255,1);
 }
 
@@ -822,6 +879,9 @@ void editorMouseClicked(int x, int y, int button) {
         button == 1)
     {
         exit(1);
+    } else if (abs(x-SAVE_BUTTON_X) < 15 && abs(y-SAVE_BUTTON_Y) < 15 &&
+               button == 1) {
+        if (editorSave(l81.filename) == 0) E.dirty = 0;
     }
 }
 
@@ -973,29 +1033,6 @@ void initConfig(void) {
     bfLoadFont((char**)l81.font);
 }
 
-/* Load the specified program in the editor memory and returns 0 on success
- * or 1 on error. */
-int editorOpenProgram(char *filename) {
-    FILE *fp;
-    char line[1024];
-
-    /* TODO: remove old program from rows. */
-    fp = fopen(filename,"r");
-    if (!fp) {
-        perror("fopen loading program into editor");
-        return 1;
-    }
-    while(fgets(line,sizeof(line),fp) != NULL) {
-        int l = strlen(line);
-
-        if (l && (line[l-1] == '\n' || line[l-1] == '\r'))
-            line[l-1] = '\0';
-        editorInsertRow(E.numrows,line);
-    }
-    fclose(fp);
-    return 0;
-}
-
 /* Load the editor program into Lua. Returns 0 on success, 1 on error. */
 int loadProgram(void) {
     int buflen;
@@ -1026,6 +1063,7 @@ void initEditor(void) {
     E.margin_top = E.margin_bottom = E.margin_left = E.margin_right = 30;
     E.screencols = (l81.width-E.margin_left-E.margin_right) / FONT_KERNING;
     E.screenrows = (l81.height-E.margin_top-E.margin_bottom) / FONT_HEIGHT;
+    E.dirty = 0;
     memset(E.key,0,sizeof(E.key));
 }
 
@@ -1074,6 +1112,9 @@ void resetProgram(void) {
     lua_setglobal(l81.L,"line");
     lua_pushcfunction(l81.L,textBinding);
     lua_setglobal(l81.L,"text");
+
+    /* Start with a black screen */
+    drawBox(l81.fb,0,0,l81.width-1,l81.height-1,0,0,0,1);
 }
 
 /* ================================= Main ================================== */
@@ -1091,7 +1132,7 @@ int main(int argc, char **argv) {
     initEditor();
     initScreen();
     l81.filename = argv[1];
-    editorOpenProgram(l81.filename);
+    editorOpen(l81.filename);
     while(1) {
         resetProgram();
         loadProgram();
