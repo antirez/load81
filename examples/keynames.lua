@@ -1,5 +1,5 @@
 function setup()
-    print("Press any key to see the corrisponding name.")
+    print("Press any key to see the corresponding name.")
 end
 
 function draw()
