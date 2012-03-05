@@ -41,7 +41,7 @@
 #define FONT_HEIGHT 16
 #define FONT_KERNING 10
 
-#define POWEROFF_BUTTON_X   (ck.width-18)
+#define POWEROFF_BUTTON_X   (l81.width-18)
 #define POWEROFF_BUTTON_Y   18
 
 /* ============================== Portable sleep ============================ */
@@ -76,7 +76,7 @@ struct globalConfig {
     char *filename;
     char *luaerr;
     int luaerrline;
-} ck;
+} l81;
 
 typedef struct erow {
     int size;
@@ -287,9 +287,9 @@ void bfLoadFont(char **c) {
 
 void bfWriteChar(frameBuffer *fb, int xp, int yp, int c, int r, int g, int b, float alpha) {
     int x,y;
-    unsigned char *bitmap = ck.font[c&0xff];
+    unsigned char *bitmap = l81.font[c&0xff];
 
-    if (!bitmap) bitmap = ck.font['?'];
+    if (!bitmap) bitmap = l81.font['?'];
     for (y = 0; y < 16; y++) {
         for (x = 0; x < 16; x++) {
             int byte = (y*16+x)/8;
@@ -313,17 +313,17 @@ void bfWriteString(frameBuffer *fb, int xp, int yp, const char *s, int len, int 
 
 /* Set a Lua global to the specified number. */
 void setNumber(char *name, lua_Number n) {
-    lua_pushnumber(ck.L,n);
-    lua_setglobal(ck.L,name);
+    lua_pushnumber(l81.L,n);
+    lua_setglobal(l81.L,name);
 }
 
 /* Get a Lua global containing a number. */
 lua_Number getNumber(char *name) {
     lua_Number n;
 
-    lua_getglobal(ck.L,name);
-    n = lua_tonumber(ck.L,-1);
-    lua_pop(ck.L,1);
+    lua_getglobal(l81.L,name);
+    n = lua_tonumber(l81.L,-1);
+    lua_pop(l81.L,1);
     return n;
 }
 
@@ -331,49 +331,49 @@ lua_Number getNumber(char *name) {
  * If s == NULL the field is set to the specified number 'n',
  * otherwise it is set to the specified string 's'. */
 void setTableField(char *name, char *field, char *s, lua_Number n) {
-    lua_getglobal(ck.L,name);
+    lua_getglobal(l81.L,name);
     /* Create the table if needed */
-    if (lua_isnil(ck.L,-1)) {
-        lua_pop(ck.L,1);
-        lua_newtable(ck.L);
-        lua_setglobal(ck.L,name);
-        lua_getglobal(ck.L,name);
+    if (lua_isnil(l81.L,-1)) {
+        lua_pop(l81.L,1);
+        lua_newtable(l81.L);
+        lua_setglobal(l81.L,name);
+        lua_getglobal(l81.L,name);
     }
     /* Set the field */
-    if (lua_istable(ck.L,-1)) {
-        lua_pushstring(ck.L,field);
+    if (lua_istable(l81.L,-1)) {
+        lua_pushstring(l81.L,field);
         if (s != NULL)
-            lua_pushstring(ck.L,s);
+            lua_pushstring(l81.L,s);
         else
-            lua_pushnumber(ck.L,n);
-        lua_settable(ck.L,-3);
+            lua_pushnumber(l81.L,n);
+        lua_settable(l81.L,-3);
     }
-    lua_pop(ck.L,1);
+    lua_pop(l81.L,1);
 }
 
 /* Set the error string and the error line number. */
 void programError(const char *e) {
-    free(ck.luaerr);
-    ck.luaerr = strdup(e);
-    e = strstr(ck.luaerr,":");
+    free(l81.luaerr);
+    l81.luaerr = strdup(e);
+    e = strstr(l81.luaerr,":");
     if (e)
-        ck.luaerrline = atoi(e+1)-1;
+        l81.luaerrline = atoi(e+1)-1;
 }
 
 /* ============================= Lua bindings ============================== */
 int fillBinding(lua_State *L) {
-    ck.r = lua_tonumber(L,-4);
-    ck.g = lua_tonumber(L,-3);
-    ck.b = lua_tonumber(L,-2);
-    ck.alpha = lua_tonumber(L,-1);
-    if (ck.r < 0) ck.r = 0;
-    if (ck.r > 255) ck.r = 255;
-    if (ck.g < 0) ck.g = 0;
-    if (ck.g > 255) ck.g = 255;
-    if (ck.b < 0) ck.b = 0;
-    if (ck.b > 255) ck.b = 255;
-    if (ck.alpha < 0) ck.alpha = 0;
-    if (ck.alpha > 1) ck.alpha = 1;
+    l81.r = lua_tonumber(L,-4);
+    l81.g = lua_tonumber(L,-3);
+    l81.b = lua_tonumber(L,-2);
+    l81.alpha = lua_tonumber(L,-1);
+    if (l81.r < 0) l81.r = 0;
+    if (l81.r > 255) l81.r = 255;
+    if (l81.g < 0) l81.g = 0;
+    if (l81.g > 255) l81.g = 255;
+    if (l81.b < 0) l81.b = 0;
+    if (l81.b > 255) l81.b = 255;
+    if (l81.alpha < 0) l81.alpha = 0;
+    if (l81.alpha > 1) l81.alpha = 1;
     return 0;
 }
 
@@ -384,7 +384,7 @@ int rectBinding(lua_State *L) {
     y = lua_tonumber(L,-3);
     w = lua_tonumber(L,-2);
     h = lua_tonumber(L,-1);
-    drawBox(ck.fb,x,y,x+w,y+h,ck.r,ck.g,ck.b,ck.alpha);
+    drawBox(l81.fb,x,y,x+w,y+h,l81.r,l81.g,l81.b,l81.alpha);
     return 0;
 }
 
@@ -395,7 +395,7 @@ int ellipseBinding(lua_State *L) {
     y = lua_tonumber(L,-3);
     rx = lua_tonumber(L,-2);
     ry = lua_tonumber(L,-1);
-    drawEllipse(ck.fb,x,y,rx,ry,ck.r,ck.g,ck.b,ck.alpha);
+    drawEllipse(l81.fb,x,y,rx,ry,l81.r,l81.g,l81.b,l81.alpha);
     return 0;
 }
 
@@ -408,7 +408,7 @@ int triangleBinding(lua_State *L) {
     y2 = lua_tonumber(L,-3);
     x3 = lua_tonumber(L,-2);
     y3 = lua_tonumber(L,-1);
-    drawTriangle(ck.fb,x1,y1,x2,y2,x3,y3,ck.r,ck.g,ck.b,ck.alpha);
+    drawTriangle(l81.fb,x1,y1,x2,y2,x3,y3,l81.r,l81.g,l81.b,l81.alpha);
     return 0;
 }
 
@@ -419,7 +419,7 @@ int lineBinding(lua_State *L) {
     y1 = lua_tonumber(L,-3);
     x2 = lua_tonumber(L,-2);
     y2 = lua_tonumber(L,-1);
-    drawLine(ck.fb,x1,y1,x2,y2,ck.r,ck.g,ck.b,ck.alpha);
+    drawLine(l81.fb,x1,y1,x2,y2,l81.r,l81.g,l81.b,l81.alpha);
     return 0;
 }
 
@@ -432,7 +432,7 @@ int textBinding(lua_State *L) {
     y = lua_tonumber(L,-2);
     s = lua_tolstring(L,-1,&len);
     if (!s) return 0;
-    bfWriteString(ck.fb,x,y,s,len,ck.r,ck.g,ck.b,ck.alpha);
+    bfWriteString(l81.fb,x,y,s,len,l81.r,l81.g,l81.b,l81.alpha);
     return 0;
 }
 
@@ -442,47 +442,47 @@ int backgroundBinding(lua_State *L) {
     r = lua_tonumber(L,-3);
     g = lua_tonumber(L,-2);
     b = lua_tonumber(L,-1);
-    drawBox(ck.fb,0,0,ck.width-1,ck.height-1,r,g,b,1);
+    drawBox(l81.fb,0,0,l81.width-1,l81.height-1,r,g,b,1);
     return 0;
 }
 
 /* ========================== Events processing ============================= */
 
 void setup(void) {
-    lua_getglobal(ck.L,"setup");
-    if (!lua_isnil(ck.L,-1)) {
-        if (lua_pcall(ck.L,0,0,0)) {
-            programError(lua_tostring(ck.L, -1));
+    lua_getglobal(l81.L,"setup");
+    if (!lua_isnil(l81.L,-1)) {
+        if (lua_pcall(l81.L,0,0,0)) {
+            programError(lua_tostring(l81.L, -1));
         }
     } else {
-        lua_pop(ck.L,1);
+        lua_pop(l81.L,1);
     }
 }
 
 void draw(void) {
-    lua_getglobal(ck.L,"draw");
-    if (!lua_isnil(ck.L,-1)) {
-        if (lua_pcall(ck.L,0,0,0)) {
-            programError(lua_tostring(ck.L, -1));
+    lua_getglobal(l81.L,"draw");
+    if (!lua_isnil(l81.L,-1)) {
+        if (lua_pcall(l81.L,0,0,0)) {
+            programError(lua_tostring(l81.L, -1));
         }
     } else {
-        lua_pop(ck.L,1);
+        lua_pop(l81.L,1);
     }
 }
 
 /* Update the keyboard.pressed and mouse.pressed Lua table. */
 void updatePressedState(char *object, char *keyname, int pressed) {
-    lua_getglobal(ck.L,object);         /* $keyboard */
-    lua_pushstring(ck.L,"pressed");     /* $keyboard, "pressed" */
-    lua_gettable(ck.L,-2);              /* $keyboard, $pressed */
-    lua_pushstring(ck.L,keyname);       /* $keyboard, $pressed, "keyname" */
+    lua_getglobal(l81.L,object);         /* $keyboard */
+    lua_pushstring(l81.L,"pressed");     /* $keyboard, "pressed" */
+    lua_gettable(l81.L,-2);              /* $keyboard, $pressed */
+    lua_pushstring(l81.L,keyname);       /* $keyboard, $pressed, "keyname" */
     if (pressed) {
-        lua_pushboolean(ck.L,1);        /* $k, $pressed, "keyname", true */
+        lua_pushboolean(l81.L,1);        /* $k, $pressed, "keyname", true */
     } else {
-        lua_pushnil(ck.L);              /* $k, $pressed, "keyname", nil */
+        lua_pushnil(l81.L);              /* $k, $pressed, "keyname", nil */
     }
-    lua_settable(ck.L,-3);              /* $k, $pressed */
-    lua_pop(ck.L,2);
+    lua_settable(l81.L,-3);              /* $k, $pressed */
+    lua_pop(l81.L,2);
 }
 
 void keyboardEvent(SDL_KeyboardEvent *key, int down) {
@@ -495,7 +495,7 @@ void keyboardEvent(SDL_KeyboardEvent *key, int down) {
 
 void mouseMovedEvent(int x, int y, int xrel, int yrel) {
     setTableField("mouse","x",NULL,x);
-    setTableField("mouse","y",NULL,ck.height-1-y);
+    setTableField("mouse","y",NULL,l81.height-1-y);
     setTableField("mouse","xrel",NULL,xrel);
     setTableField("mouse","yrel",NULL,-yrel);
 }
@@ -545,14 +545,14 @@ int processSdlEvents(void) {
     }
 
     /* Call the setup function, only the first time. */
-    if (ck.epoch == 0) setup();
+    if (l81.epoch == 0) setup();
     /* Call the draw function at every iteration.  */
     draw();
-    ck.epoch++;
+    l81.epoch++;
     /* Refresh the screen */
-    sdlShowRgb(ck.screen,ck.fb);
+    sdlShowRgb(l81.screen,l81.fb);
     /* Stop execution on error */
-    return ck.luaerr != NULL;
+    return l81.luaerr != NULL;
 }
 
 /* ======================= Editor rows implementation ======================= */
@@ -731,12 +731,12 @@ void editorDelChar() {
 
 void editorDrawCursor(void) {
     int x = E.cx*FONT_KERNING;
-    int y = ck.height-((E.cy+1)*FONT_HEIGHT);
+    int y = l81.height-((E.cy+1)*FONT_HEIGHT);
     int charmargin = (FONT_WIDTH-FONT_KERNING)/2;
 
     x += E.margin_left;
     y -= E.margin_top;
-    if (!(E.cblink & 0x80)) drawBox(ck.fb,x+charmargin,y,
+    if (!(E.cblink & 0x80)) drawBox(l81.fb,x+charmargin,y,
                                 x+charmargin+FONT_KERNING-1,y+FONT_HEIGHT-1,
                                 165,165,255,.5);
     E.cblink += 4;
@@ -757,43 +757,43 @@ void editorDrawChars(void) {
 
             if (idx >= r->size) break;
             charx = x*FONT_KERNING;
-            chary = ck.height-((y+1)*FONT_HEIGHT);
+            chary = l81.height-((y+1)*FONT_HEIGHT);
             charx += E.margin_left;
             chary -= E.margin_top;
-            if (ck.luaerr && ck.luaerrline == filerow) {
+            if (l81.luaerr && l81.luaerrline == filerow) {
                 tr = 255; tg = 100, tb = 100;
             } else {
                 tr = 165; tg = 165, tb = 255;
             }
-            bfWriteChar(ck.fb,charx,chary,r->chars[idx],tr,tg,tb,1);
+            bfWriteChar(l81.fb,charx,chary,r->chars[idx],tr,tg,tb,1);
         }
     }
-    if (ck.luaerr)
-        bfWriteString(ck.fb,E.margin_left,10,ck.luaerr,strlen(ck.luaerr),
+    if (l81.luaerr)
+        bfWriteString(l81.fb,E.margin_left,10,l81.luaerr,strlen(l81.luaerr),
                       0,0,0,1);
 }
 
 void editorDrawPowerOff(int x, int y) {
-    drawEllipse(ck.fb,x,y,12,12,66,66,231,1);
-    drawEllipse(ck.fb,x,y,7,7,165,165,255,1);
-    drawBox(ck.fb,x-4,y,x+4,y+12,165,165,255,1);
-    drawBox(ck.fb,x-2,y,x+2,y+14,66,66,231,1);
+    drawEllipse(l81.fb,x,y,12,12,66,66,231,1);
+    drawEllipse(l81.fb,x,y,7,7,165,165,255,1);
+    drawBox(l81.fb,x-4,y,x+4,y+12,165,165,255,1);
+    drawBox(l81.fb,x-2,y,x+2,y+14,66,66,231,1);
 }
 
 void editorDraw() {
-    drawBox(ck.fb,0,0,ck.width-1,ck.height-1,165,165,255,1);
-    drawBox(ck.fb,
+    drawBox(l81.fb,0,0,l81.width-1,l81.height-1,165,165,255,1);
+    drawBox(l81.fb,
             E.margin_left,
             E.margin_top,
-            ck.width-1-E.margin_right,
-            ck.height-1-E.margin_bottom,66,66,231,1);
+            l81.width-1-E.margin_right,
+            l81.height-1-E.margin_bottom,66,66,231,1);
     editorDrawChars();
     editorDrawCursor();
     /* Show buttons */
     editorDrawPowerOff(POWEROFF_BUTTON_X,POWEROFF_BUTTON_Y);
     /* Show info about the current file */
-    bfWriteString(ck.fb,E.margin_left,ck.width-E.margin_top+2,ck.filename,
-        strlen(ck.filename), 255,255,255,1);
+    bfWriteString(l81.fb,E.margin_left,l81.width-E.margin_top+2,l81.filename,
+        strlen(l81.filename), 255,255,255,1);
 }
 
 /* ========================= Editor events handling  ======================== */
@@ -906,7 +906,7 @@ int editorEvents(void) {
             break;
         /* Mouse click */
         case SDL_MOUSEBUTTONDOWN:
-            editorMouseClicked(event.motion.x, ck.height-1-event.motion.y,
+            editorMouseClicked(event.motion.x, l81.height-1-event.motion.y,
                                event.button.button);
             break;
         }
@@ -952,25 +952,25 @@ int editorEvents(void) {
     /* Call the draw function at every iteration.  */
     editorDraw();
     /* Refresh the screen */
-    sdlShowRgb(ck.screen,ck.fb);
+    sdlShowRgb(l81.screen,l81.fb);
     return 0;
 }
 
 /* =========================== Initialization ============================== */
 
 void initConfig(void) {
-    ck.screen = NULL;
-    ck.width = DEFAULT_WIDTH;
-    ck.height = DEFAULT_HEIGHT;
-    ck.r = 255;
-    ck.g = ck.b = 0;
-    ck.alpha = 1;
-    ck.L = NULL;
-    ck.luaerr = NULL;
-    ck.luaerrline = 0;
+    l81.screen = NULL;
+    l81.width = DEFAULT_WIDTH;
+    l81.height = DEFAULT_HEIGHT;
+    l81.r = 255;
+    l81.g = l81.b = 0;
+    l81.alpha = 1;
+    l81.L = NULL;
+    l81.luaerr = NULL;
+    l81.luaerrline = 0;
 
     /* Load the bitmap font */
-    bfLoadFont((char**)ck.font);
+    bfLoadFont((char**)l81.font);
 }
 
 /* Load the specified program in the editor memory and returns 0 on success
@@ -1001,17 +1001,17 @@ int loadProgram(void) {
     int buflen;
     char *buf = editorRowsToString(&buflen);
 
-    if (luaL_loadbuffer(ck.L,buf,buflen,ck.filename)) {
-        programError(lua_tostring(ck.L, -1));
+    if (luaL_loadbuffer(l81.L,buf,buflen,l81.filename)) {
+        programError(lua_tostring(l81.L, -1));
         free(buf);
         return 1;
     }
     free(buf);
-    if (lua_pcall(ck.L,0,0,0)) {
-        programError(lua_tostring(ck.L, -1));
+    if (lua_pcall(l81.L,0,0,0)) {
+        programError(lua_tostring(l81.L, -1));
         return 1;
     }
-    ck.luaerr = NULL;
+    l81.luaerr = NULL;
     return 0;
 }
 
@@ -1024,14 +1024,14 @@ void initEditor(void) {
     E.numrows = 0;
     E.row = NULL;
     E.margin_top = E.margin_bottom = E.margin_left = E.margin_right = 30;
-    E.screencols = (ck.width-E.margin_left-E.margin_right) / FONT_KERNING;
-    E.screenrows = (ck.height-E.margin_top-E.margin_bottom) / FONT_HEIGHT;
+    E.screencols = (l81.width-E.margin_left-E.margin_right) / FONT_KERNING;
+    E.screenrows = (l81.height-E.margin_top-E.margin_bottom) / FONT_HEIGHT;
     memset(E.key,0,sizeof(E.key));
 }
 
 void initScreen(void) {
-    ck.fb = createFrameBuffer(ck.width,ck.height);
-    ck.screen = sdlInit(ck.width,ck.height,0);
+    l81.fb = createFrameBuffer(l81.width,l81.height);
+    l81.screen = sdlInit(l81.width,l81.height,0);
 }
 
 void resetProgram(void) {
@@ -1039,18 +1039,18 @@ void resetProgram(void) {
         "keyboard={}; keyboard['pressed']={};"
         "mouse={}; mouse['pressed']={};";
 
-    ck.epoch = 0;
-    if (ck.L) lua_close(ck.L);
-    ck.L = lua_open();
-    luaopen_base(ck.L);
-    luaopen_table(ck.L);
-    luaopen_string(ck.L);
-    luaopen_math(ck.L);
-    luaopen_debug(ck.L);
-    setNumber("WIDTH",ck.width);
-    setNumber("HEIGHT",ck.height);
-    luaL_loadbuffer(ck.L,initscript,strlen(initscript),"initscript");
-    lua_pcall(ck.L,0,0,0);
+    l81.epoch = 0;
+    if (l81.L) lua_close(l81.L);
+    l81.L = lua_open();
+    luaopen_base(l81.L);
+    luaopen_table(l81.L);
+    luaopen_string(l81.L);
+    luaopen_math(l81.L);
+    luaopen_debug(l81.L);
+    setNumber("WIDTH",l81.width);
+    setNumber("HEIGHT",l81.height);
+    luaL_loadbuffer(l81.L,initscript,strlen(initscript),"initscript");
+    lua_pcall(l81.L,0,0,0);
 
     /* Make sure that mouse parameters make sense even before the first
      * mouse event captured by SDL */
@@ -1060,20 +1060,20 @@ void resetProgram(void) {
     setTableField("mouse","yrel",NULL,0);
 
     /* Register API */
-    lua_pushcfunction(ck.L,fillBinding);
-    lua_setglobal(ck.L,"fill");
-    lua_pushcfunction(ck.L,rectBinding);
-    lua_setglobal(ck.L,"rect");
-    lua_pushcfunction(ck.L,ellipseBinding);
-    lua_setglobal(ck.L,"ellipse");
-    lua_pushcfunction(ck.L,backgroundBinding);
-    lua_setglobal(ck.L,"background");
-    lua_pushcfunction(ck.L,triangleBinding);
-    lua_setglobal(ck.L,"triangle");
-    lua_pushcfunction(ck.L,lineBinding);
-    lua_setglobal(ck.L,"line");
-    lua_pushcfunction(ck.L,textBinding);
-    lua_setglobal(ck.L,"text");
+    lua_pushcfunction(l81.L,fillBinding);
+    lua_setglobal(l81.L,"fill");
+    lua_pushcfunction(l81.L,rectBinding);
+    lua_setglobal(l81.L,"rect");
+    lua_pushcfunction(l81.L,ellipseBinding);
+    lua_setglobal(l81.L,"ellipse");
+    lua_pushcfunction(l81.L,backgroundBinding);
+    lua_setglobal(l81.L,"background");
+    lua_pushcfunction(l81.L,triangleBinding);
+    lua_setglobal(l81.L,"triangle");
+    lua_pushcfunction(l81.L,lineBinding);
+    lua_setglobal(l81.L,"line");
+    lua_pushcfunction(l81.L,textBinding);
+    lua_setglobal(l81.L,"text");
 }
 
 /* ================================= Main ================================== */
@@ -1090,12 +1090,12 @@ int main(int argc, char **argv) {
     initConfig();
     initEditor();
     initScreen();
-    ck.filename = argv[1];
-    editorOpenProgram(ck.filename);
+    l81.filename = argv[1];
+    editorOpenProgram(l81.filename);
     while(1) {
         resetProgram();
         loadProgram();
-        if (ck.luaerr == NULL)
+        if (l81.luaerr == NULL)
             while(!processSdlEvents());
         E.lastevent = time(NULL);
         while(!editorEvents());
