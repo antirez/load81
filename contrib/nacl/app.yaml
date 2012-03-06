@@ -1,0 +1,19 @@
+application: load81
+version: 1
+runtime: python27
+api_version: 1
+threadsafe: true
+
+handlers:
+- url: /
+  static_files: load81.html
+  upload: load81.html
+- url: /load81.nmf
+  static_files: load81.nmf
+  upload: load81.nmf
+- url: /load81-i686-nacl.nexe
+  static_files: load81-i686-nacl.nexe
+  upload: load81-i686-nacl.nexe
+- url: /load81-x86_64-nacl.nexe
+  static_files: load81-x86_64-nacl.nexe
+  upload: load81-x86_64-nacl.nexe

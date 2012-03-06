@@ -799,6 +799,7 @@ void editorDelChar() {
 /* Load the specified program in the editor memory and returns 0 on success
  * or 1 on error. */
 int editorOpen(char *filename) {
+#ifndef __native_client__
     FILE *fp;
     char line[1024];
 
@@ -818,6 +819,19 @@ int editorOpen(char *filename) {
     fclose(fp);
     E.dirty = 0;
     return 0;
+#else
+    /* TODO: implement file IO for NaCl */
+    editorInsertRow(E.numrows, "function draw()");
+    editorInsertRow(E.numrows, "    if mouse.pressed['1'] then");
+    editorInsertRow(E.numrows, "        fill(255,0,0,.2)");
+    editorInsertRow(E.numrows, "    else");
+    editorInsertRow(E.numrows, "        fill(0,0,255,.2)");
+    editorInsertRow(E.numrows, "    end");
+    editorInsertRow(E.numrows, "    ellipse(mouse.x,mouse.y,30,30)");
+    editorInsertRow(E.numrows, "end");
+    E.dirty = 0;
+    return 0;
+#endif
 }
 
 int editorSave(char *filename) {
@@ -953,7 +967,9 @@ void editorMouseClicked(int x, int y, int button) {
     if (abs(x-POWEROFF_BUTTON_X) < 15 && abs(y-POWEROFF_BUTTON_Y) < 15 &&
         button == 1)
     {
+#ifndef __native_client__
         exit(1);
+#endif
     } else if (abs(x-SAVE_BUTTON_X) < 15 && abs(y-SAVE_BUTTON_Y) < 15 &&
                button == 1) {
         if (editorSave(l81.filename) == 0) E.dirty = 0;
@@ -1086,7 +1102,9 @@ int editorEvents(void) {
                     editorInsertChar(' ');
                 break;
             default:
-                editorInsertChar(E.key[j].translation);
+                if (E.key[j].translation != 0) {
+                    editorInsertChar(E.key[j].translation);
+                }
                 break;
             }
         }
@@ -1244,6 +1262,10 @@ void parseOptions(int argc, char **argv) {
         showCliHelp();
     }
 }
+
+#ifdef __native_client__
+#define main load81_main
+#endif
 
 int main(int argc, char **argv) {
     NOTUSED(argc);
