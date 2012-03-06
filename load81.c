@@ -544,6 +544,9 @@ int processSdlEvents(void) {
         case SDL_MOUSEBUTTONUP:
             mouseButtonEvent(event.button.button,0);
             break;
+        case SDL_QUIT:
+            exit(0);
+            break;
         }
     }
 
@@ -968,6 +971,9 @@ int editorEvents(void) {
         case SDL_MOUSEBUTTONDOWN:
             editorMouseClicked(event.motion.x, l81.height-1-event.motion.y,
                                event.button.button);
+            break;
+        case SDL_QUIT:
+            exit(0);
             break;
         }
     }
