@@ -3,7 +3,7 @@ README
 
 Load81 is an attempt at creating a Codea-inspired environment to teach
 children how to write Lua programs. It features a graphical programming
-environment and a Commdore-64 style integrated editor so that the programmer
+environment and a Commodore-64 style integrated editor so that the programmer
 is confined into a friendly environment with a simple editor:
 
 ![Load81 Screenshot 1](http://antirez.com/misc/codakido_screenshot_1.png)
@@ -27,7 +27,7 @@ I wrote it mainly because I and my children have fun with Codea but we don't
 have an iPad at home, and using a real keyboard sometimes can be less
 frustrating.
 
-The name Load81 originates from the fact that in popular Commondore home
+The name Load81 originates from the fact that in popular Commodore home
 computers the command `LOAD "*",8,1` would load the first program on the disk
 starting from the file-specified memory location.
 
