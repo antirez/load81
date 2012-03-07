@@ -8,8 +8,9 @@ is confined into a friendly environment with a simple editor:
 
 ![Load81 Screenshot 1](http://antirez.com/misc/codakido_screenshot_1.png)
 
-The following is a screenshot of the running program. The programmer can
-currently switch between edit and play mode pressing the ESC key.
+The following is a screenshot of the running program (examples/asteroids.lua).
+The programmer can currently switch between edit and play mode pressing the
+ESC key.
 
 ![Load81 Screenshot 2](http://antirez.com/misc/codakido_screenshot_2.png)
 
