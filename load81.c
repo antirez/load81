@@ -799,6 +799,19 @@ void editorDrawCursor(void) {
     E.cblink += 4;
 }
 
+#define LINE_TYPE_NORMAL 0
+#define LINE_TYPE_COMMENT 1
+#define LINE_TYPE_ERROR 2
+
+int editorLineType(erow *row, int filerow) {
+    char *p = row->chars;
+
+    if (l81.luaerr && l81.luaerrline == filerow) return LINE_TYPE_ERROR;
+    while(*p == ' ') p++;
+    if (*p == '-' && *(p+1) == '-') return LINE_TYPE_COMMENT;
+    return LINE_TYPE_NORMAL;
+}
+
 void editorDrawChars(void) {
     int y,x;
     erow *r;
@@ -811,16 +824,17 @@ void editorDrawChars(void) {
             int idx = x+E.coloff;
             int charx,chary;
             int tr,tg,tb;
+            int line_type = editorLineType(r,filerow);
 
             if (idx >= r->size) break;
             charx = x*FONT_KERNING;
             chary = l81.height-((y+1)*FONT_HEIGHT);
             charx += E.margin_left;
             chary -= E.margin_top;
-            if (l81.luaerr && l81.luaerrline == filerow) {
-                tr = 255; tg = 100, tb = 100;
-            } else {
-                tr = 165; tg = 165, tb = 255;
+            switch(line_type) {
+            case LINE_TYPE_ERROR: tr = 255; tg = 100, tb = 100; break;
+            case LINE_TYPE_COMMENT: tr = 180, tg = 180, tb = 0; break;
+            default: tr = 165; tg = 165, tb = 255; break;
             }
             bfWriteChar(l81.fb,charx,chary,r->chars[idx],tr,tg,tb,1);
         }
