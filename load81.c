@@ -147,9 +147,13 @@ void sdlShowRgb(SDL_Surface *screen, frameBuffer *fb)
     for (y = 0; y < fb->height; y++) {
         s = screen->pixels+y*(screen->pitch);
         for (x = 0; x < fb->width; x++) {
+#if SDL_BYTEORDER == SDL_LIL_ENDIAN
             s[0] = p[2];
             s[1] = p[1];
             s[2] = p[0];
+#else
+	    memcpy(s, p, 3);
+#endif
             s += 3;
             p += 3;
         }
@@ -543,6 +547,9 @@ int processSdlEvents(void) {
             break;
         case SDL_MOUSEBUTTONUP:
             mouseButtonEvent(event.button.button,0);
+            break;
+        case SDL_QUIT:
+            exit(0);
             break;
         }
     }
@@ -970,6 +977,9 @@ int editorEvents(void) {
         case SDL_MOUSEBUTTONDOWN:
             editorMouseClicked(event.motion.x, l81.height-1-event.motion.y,
                                event.button.button);
+            break;
+        case SDL_QUIT:
+            exit(0);
             break;
         }
     }
