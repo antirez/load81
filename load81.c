@@ -818,9 +818,11 @@ void editorDrawChars(void) {
             bfWriteChar(l81.fb,charx,chary,r->chars[idx],tr,tg,tb,1);
         }
     }
-    if (l81.luaerr)
-        bfWriteString(l81.fb,E.margin_left,10,l81.luaerr,strlen(l81.luaerr),
-                      0,0,0,1);
+    if (l81.luaerr) {
+        char *p = strchr(l81.luaerr,':');
+        p = p ? p+1 : l81.luaerr;
+        bfWriteString(l81.fb,E.margin_left,10,p,strlen(p),0,0,0,1);
+    }
 }
 
 void editorDrawPowerOff(int x, int y) {
@@ -995,6 +997,12 @@ int editorEvents(void) {
             case SDLK_HOME:
             case SDLK_LSHIFT:
             case SDLK_RSHIFT:
+            case SDLK_LCTRL:
+            case SDLK_RCTRL:
+            case SDLK_LALT:
+            case SDLK_RALT:
+            case SDLK_LMETA:
+            case SDLK_RMETA:
                 /* Ignored */
                 break;
             case SDLK_TAB:
@@ -1136,8 +1144,10 @@ int main(int argc, char **argv) {
     while(1) {
         resetProgram();
         loadProgram();
-        if (l81.luaerr == NULL)
+        if (l81.luaerr == NULL) {
             while(!processSdlEvents());
+            if (E.dirty && editorSave(l81.filename) == 0) E.dirty = 0;
+        }
         E.lastevent = time(NULL);
         while(!editorEvents());
     }
