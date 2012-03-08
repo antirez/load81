@@ -56,6 +56,7 @@
 #define sleep_milliseconds(x) usleep((x)*1000)
 #endif
 
+
 /* ============================= Data structures ============================ */
 
 typedef struct frameBuffer {
@@ -312,6 +313,51 @@ void bfWriteString(frameBuffer *fb, int xp, int yp, const char *s, int len, int 
                     s[i],r,g,b,alpha);
 }
 
+/* =============================== Sprites ================================== */
+
+#include <SDL_image.h>
+
+#define SPRITE_MT "l81.sprite"
+
+int sprite_gc(lua_State *L) {
+    SDL_Surface **pps = (SDL_Surface **)luaL_checkudata(L, 1, SPRITE_MT);
+    if (pps) SDL_FreeSurface(*pps);
+
+    return 0;
+}
+
+static const struct luaL_Reg sprite_m[] = {
+    { "__gc",  sprite_gc },
+    { NULL,    NULL      }
+};
+
+SDL_Surface * loadSprite(const char *filename)
+{
+    SDL_Surface **pps;
+
+    lua_getfield(l81.L, LUA_REGISTRYINDEX, filename);
+    if (lua_isnil(l81.L, -1))
+    {
+        SDL_Surface *ps = IMG_Load(filename);
+        if (ps == NULL) return 0;
+
+        pps = (SDL_Surface **)lua_newuserdata(l81.L, sizeof(SDL_Surface *));
+        *pps = ps;
+
+        luaL_getmetatable(l81.L, SPRITE_MT);
+        lua_setmetatable(l81.L, -2);
+
+        lua_setfield(l81.L, LUA_REGISTRYINDEX, filename);
+    }
+    else
+    {
+        pps = (SDL_Surface **)luaL_checkudata(l81.L, -1, SPRITE_MT);
+        lua_pop(l81.L, -1);
+    }
+
+    return *pps;
+}
+
 /* ========================= Lua helper functions ========================== */
 
 /* Set a Lua global to the specified number. */
@@ -446,6 +492,32 @@ int backgroundBinding(lua_State *L) {
     g = lua_tonumber(L,-2);
     b = lua_tonumber(L,-1);
     drawBox(l81.fb,0,0,l81.width-1,l81.height-1,r,g,b,1);
+    return 0;
+}
+
+int spriteBinding(lua_State *L) {
+    SDL_Surface *s = NULL;
+    const char *filename;
+    int x, y;
+    int i, j;
+
+    filename = lua_tostring(L, 1);
+    x = lua_tonumber(L, 2);
+    y = lua_tonumber(L, 3);
+
+    s = loadSprite(filename);
+    if (s == NULL) return 0;
+
+    for (j = 0 ; j < s->h ; j++)
+    {
+        for (i = 0 ; i < s->w ; i++)
+        {
+            /* todo handle alpha */
+            const char *p = s->pixels + s->pitch*j + 3*i;
+            setPixelWithAlpha(l81.fb, x+i, y+s->h-j, p[0], p[1], p[2], l81.alpha);
+        }
+    }
+
     return 0;
 }
 
@@ -1118,6 +1190,15 @@ void resetProgram(void) {
     lua_setglobal(l81.L,"line");
     lua_pushcfunction(l81.L,textBinding);
     lua_setglobal(l81.L,"text");
+
+    lua_pushcfunction(l81.L,spriteBinding);
+    lua_setglobal(l81.L,"sprite");
+
+    luaL_newmetatable(l81.L, SPRITE_MT);
+    lua_pushvalue(l81.L, -1);
+    lua_setfield(l81.L, -2, "__index");
+
+    luaL_register(l81.L, NULL, sprite_m);
 
     /* Start with a black screen */
     drawBox(l81.fb,0,0,l81.width-1,l81.height-1,0,0,0,1);
