@@ -523,7 +523,7 @@ int processSdlEvents(void) {
     SDL_Event event;
 
     resetEvents();
-    if (SDL_PollEvent(&event)) {
+    while (SDL_PollEvent(&event)) {
         switch(event.type) {
         case SDL_KEYDOWN:
             switch(event.key.keysym.sym) {
@@ -551,6 +551,14 @@ int processSdlEvents(void) {
         case SDL_QUIT:
             exit(0);
             break;
+        }
+        /* If the next event to process is of type KEYUP or
+         * MOUSEBUTTONUP we want to stop processing here, so that
+         * a fast up/down event be noticed by Lua. */
+        if (SDL_PeepEvents(&event,1,SDL_PEEKEVENT,SDL_ALLEVENTS)) {
+            if (event.type == SDL_KEYUP ||
+                event.type == SDL_MOUSEBUTTONUP)
+                break; /* Go to lua before processing more. */
         }
     }
 
