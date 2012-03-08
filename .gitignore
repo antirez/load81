@@ -1,4 +1,5 @@
 load81
+*.o
 lua/src/*.o
 lua/src/*.a
 lua/src/lua
