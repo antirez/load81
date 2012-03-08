@@ -971,7 +971,7 @@ int editorEvents(void) {
         E.cblink = 0;
     }
 
-    if (SDL_PollEvent(&event)) {
+    while (SDL_PollEvent(&event)) {
         E.lastevent = time(NULL);
         switch(event.type) {
         /* Key pressed */
