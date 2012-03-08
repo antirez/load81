@@ -79,6 +79,10 @@ function fire()
           vx = shipvx+(2*math.sin(shipa)),
           vy = shipvy+(2*math.cos(shipa)),
           ttl=300 }
+    -- Make sure that the bullet originaes from ship head
+    b.x = b.x+(20*math.sin(shipa))
+    b.y = b.y+(20*math.cos(shipa))
+    -- Finally insert the bullet in the table of bullets
     table.insert(bullets,b)
     last_bullet_ticks = ticks
 end
