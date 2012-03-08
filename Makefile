@@ -1,10 +1,11 @@
 CFLAGS = -Ilua/src -O2 -Wall
+LFLAGS = -lm lua/src/liblua.a
 
 all: load81 
 
-load81: load81.c drawing editor load81.h lua/src/liblua.a bitfont.dat
+load81: load81.c drawing editor lua/src/liblua.a bitfont.dat
 	$(CC) $(CFLAGS) `sdl-config --cflags` -c load81.c
-	$(CC) *.o $(CFLAGS) `sdl-config --cflags` `sdl-config --libs` -lm lua/src/liblua.a -o load81
+	$(CC) *.o $(CFLAGS) `sdl-config --cflags` `sdl-config --libs` $(LFLAGS) -o load81
 
 editor: editor.h editor.c
 	$(CC) $(CFLAGS) `sdl-config --cflags` -c editor.c

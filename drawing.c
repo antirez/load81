@@ -1,3 +1,5 @@
+#include <math.h>
+#include <SDL.h>
 #include "load81.h"
 #include "drawing.h"
 

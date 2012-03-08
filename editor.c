@@ -1,3 +1,6 @@
+#include <time.h>
+#include "load81.h"
+#include "drawing.h"
 #include "editor.h"
 
 void initEditor(void) {
@@ -29,10 +32,6 @@ void editorDrawCursor(void) {
                                 165,165,255,.5);
     E.cblink += 4;
 }
-
-#define LINE_TYPE_NORMAL 0
-#define LINE_TYPE_COMMENT 1
-#define LINE_TYPE_ERROR 2
 
 int editorLineType(erow *row, int filerow) {
     char *p = row->chars;
