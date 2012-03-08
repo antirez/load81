@@ -122,16 +122,22 @@ end
 -- rotating the vertexes using rotatePoint().
 
 function drawShip(x,y,a)
-    local x0,y0,x1,y1,x2,y2
-
-    fill(255,0,0,1)
-    x0 = -10; y0 = -10;
-    x1 = 0;   y1 = 20;
-    x2 = 10;  y2 = -10;
-    x0,y0 = rotatePoint(x0,y0,-a);
-    x1,y1 = rotatePoint(x1,y1,-a);
-    x2,y2 = rotatePoint(x2,y2,-a);
-    triangle(x+x0,y+y0,x+x1,y+y1,x+x2,y+y2)
+    local triangles = {}
+    table.insert(triangles,
+        {x0 = -10, y0 = -10, x1 = 0, y1 = 20, x2 = 10, y2 = -10,
+          r = 255, g = 0, b = 0, alpha = 1 })
+    if keyboard.pressed['up'] then
+        table.insert(triangles,
+        {x0 = -5, y0 = -10, x1 = 0, y1 = math.random(-25,-20), x2 = 5, y2 = -10,
+          r = 255, g = 255, b = 0, alpha = 1 })
+    end
+    for i,t in pairs(triangles) do
+        fill(t.r,t.g,t.b,t.alpha)
+        t.x0,t.y0 = rotatePoint(t.x0,t.y0,-a);
+        t.x1,t.y1 = rotatePoint(t.x1,t.y1,-a);
+        t.x2,t.y2 = rotatePoint(t.x2,t.y2,-a);
+        triangle(x+t.x0,y+t.y0,x+t.x1,y+t.y1,x+t.x2,y+t.y2)
+    end
 end
 
 -- Draw a bullet, that's just a single pixel.
@@ -180,6 +186,9 @@ function checkBulletCollision()
     end
     for i,a in pairs(del_asteroids) do
         table.remove(asteroids,i)
-        asteroids_num = asteroids_num -1
+        asteroids_num = asteroids_num - 1
+        if asteroids_num == 0 then
+            asteroids_max = asteroids_max + 1
+        end
     end
 end
