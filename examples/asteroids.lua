@@ -1,3 +1,7 @@
+-- Simple Asteroids-alike game.
+-- Copyright (C) 2012 Salvatore Sanfilippo.
+-- This code is released under the BSD two-clause license.
+
 function setup()
     ticks = 0 -- Number of iteration of the program
     shipx = WIDTH/2 -- Ship x position
