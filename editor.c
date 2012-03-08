@@ -36,7 +36,7 @@ void editorDrawCursor(void) {
 int editorLineType(erow *row, int filerow) {
     char *p = row->chars;
 
-    if (E.error.msg && E.error.line == filerow) return LINE_TYPE_ERROR;
+    if (l81.luaerr && l81.luaerrline == filerow) return LINE_TYPE_ERROR;
     while(*p == ' ') p++;
     if (*p == '-' && *(p+1) == '-') return LINE_TYPE_COMMENT;
     return LINE_TYPE_NORMAL;
@@ -69,9 +69,9 @@ void editorDrawChars(void) {
             bfWriteChar(l81.fb,charx,chary,r->chars[idx],tr,tg,tb,1);
         }
     }
-    if (E.error.msg) {
-        char *p = strchr(E.error.msg,':');
-        p = p ? p+1 : E.error.msg;
+    if (l81.luaerr) {
+        char *p = strchr(l81.luaerr,':');
+        p = p ? p+1 : l81.luaerr;
         bfWriteString(l81.fb,E.margin_left,10,p,strlen(p),0,0,0,1);
     }
 }
@@ -113,8 +113,8 @@ int editorEvents(int errorLine, char *errorMsg) {
     int j, ksym;
     time_t idletime;
 
-    E.error.line = errorLine;
-    E.error.msg = errorMsg;
+    l81.luaerrline = errorLine;
+    l81.luaerr = errorMsg;
 
     /* Sleep 0.25 seconds if no body is pressing any key for a few seconds.
      * This way we can save tons of energy when in editing mode and

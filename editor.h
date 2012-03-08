@@ -47,11 +47,6 @@ typedef struct keyState {
     int counter;
 } keyState;
 
-typedef struct errorState {
-    int line;
-    char *msg;
-} errorState;
-
 struct editorConfig {
     int cx,cy;  /* Cursor x and y position in characters */
     unsigned char cblink; /* Show cursor if (cblink & 0x80) == 0 */
@@ -64,7 +59,6 @@ struct editorConfig {
     erow *row;      /* Rows */
     time_t lastevent;   /* Last event time, so we can go standby */
     keyState key[KEY_MAX];   /* Remember if a key is pressed / repeated. */
-    errorState error;        /* updated to reflect errors from the runtime */
     int dirty;      /* File modified but not saved. */
 } E;
 
