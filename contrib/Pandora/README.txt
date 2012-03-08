@@ -35,5 +35,5 @@ Good luck!
 --
 Questions / Comments about this contrib: seclorum@me.com (torpor on OPB forums)
 Questions / Comments about LOAD81: antirez@gmail.com
-Questions / Comments about PickleLauncher: antirez@gmail.com
+Questions / Comments about PickleLauncher: http://sourceforge.net/projects/picklelauncher/
 
