@@ -523,7 +523,7 @@ int processSdlEvents(void) {
     SDL_Event event;
 
     resetEvents();
-    if (SDL_PollEvent(&event)) {
+    while (SDL_PollEvent(&event)) {
         switch(event.type) {
         case SDL_KEYDOWN:
             switch(event.key.keysym.sym) {
