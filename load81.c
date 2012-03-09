@@ -200,14 +200,24 @@ void setPixelWithAlpha(frameBuffer *fb, int x, int y, int r, int g, int b, float
 
 void drawHline(frameBuffer *fb, int x1, int x2, int y, int r, int g, int b, float alpha) {
     int aux, x;
+    unsigned char *p;
 
+    if (y < 0 || y >= fb->height) return;
     if (x1 > x2) {
         aux = x1;
         x1 = x2;
         x2 = aux;
     }
-    for (x = x1; x <= x2; x++)
-        setPixelWithAlpha(fb,x,y,r,g,b,alpha);
+    if (x1 < 0) x1 = 0;
+    if (x2 >= fb->width) x2 = fb->width-1;
+
+    p = fb->p+(fb->height-1-y)*fb->width*3+x1*3;
+    for (x = x1; x <= x2; x++) {
+        p[0] = (alpha*r)+((1-alpha)*p[0]);
+        p[1] = (alpha*g)+((1-alpha)*p[1]);
+        p[2] = (alpha*b)+((1-alpha)*p[2]);
+        p += 3;
+    }
 }
 
 void drawEllipse(frameBuffer *fb, int xc, int yc, int radx, int rady, int r, int g, int b, float alpha) {
