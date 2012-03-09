@@ -31,6 +31,7 @@
 #include <ctype.h>
 
 #include <SDL.h>
+#include <SDL_gfxPrimitives.h>
 #include <lua.h>
 #include <lauxlib.h>
 #include <lualib.h>
@@ -165,151 +166,31 @@ frameBuffer *createFrameBuffer(int width, int height) {
 /* ========================== Drawing primitives ============================ */
 
 void setPixelWithAlpha(frameBuffer *fb, int x, int y, int r, int g, int b, float alpha) {
-    unsigned char *p;
-
-    if (x < 0 || x >= fb->width || y < 0 || y >= fb->height) return;
-    y = fb->height-1-y; /* y=0 is bottom border of the screen */
-    p = l81.fb->screen->pixels+y*l81.fb->screen->pitch+(x*3);
-
-#if SDL_BYTEORDER == SDL_LIL_ENDIAN
-    p[0] = (alpha*b)+((1-alpha)*p[0]);
-    p[1] = (alpha*g)+((1-alpha)*p[1]);
-    p[2] = (alpha*r)+((1-alpha)*p[2]);
-#else
-    p[0] = (alpha*r)+((1-alpha)*p[0]);
-    p[1] = (alpha*g)+((1-alpha)*p[1]);
-    p[2] = (alpha*b)+((1-alpha)*p[2]);
-#endif
+    pixelRGBA(fb->screen, x, fb->height-1-y, r, g, b, alpha*255);
 }
 
 void fillBackground(frameBuffer *fb, int r, int g, int b) {
-    int x, y;
-    unsigned char *s;
-
-    for (y = 0; y < fb->height; y++) {
-        s = fb->screen->pixels+y*(fb->screen->pitch);
-        for (x = 0; x < fb->width; x++) {
-#if SDL_BYTEORDER == SDL_LIL_ENDIAN
-            s[0] = b;
-            s[1] = g;
-            s[2] = r;
-#else
-            s[0] = r;
-            s[1] = g;
-            s[2] = b;
-#endif
-            s += 3;
-        }
-    }
+    boxRGBA(fb->screen, 0, 0, fb->width-1, fb->height-1, r, g, b, 255);
 }
 
 void drawHline(frameBuffer *fb, int x1, int x2, int y, int r, int g, int b, float alpha) {
-    int aux, x;
-
-    if (x1 > x2) {
-        aux = x1;
-        x1 = x2;
-        x2 = aux;
-    }
-    for (x = x1; x <= x2; x++)
-        setPixelWithAlpha(fb,x,y,r,g,b,alpha);
+    hlineRGBA(fb->screen, x1, x2, fb->height-1-y, r, g, b, alpha*255);
 }
 
 void drawEllipse(frameBuffer *fb, int xc, int yc, int radx, int rady, int r, int g, int b, float alpha) {
-    int x1, x2, y;
-    float xshift;
-
-    for (y=yc-rady; y<=yc+rady; y++) {
-        xshift = sqrt((rady*rady) - ((y - yc)*(y - yc)))*((float)radx/rady);
-        x1 = round(xc-xshift);
-        x2 = round(xc+xshift);
-        drawHline(fb,x1,x2,y,r,g,b,alpha);
-    }
+    filledEllipseRGBA(fb->screen, xc, fb->height-1-yc, radx, rady, r, g, b, alpha*255);
 }
 
 void drawBox(frameBuffer *fb, int x1, int y1, int x2, int y2, int r, int g, int b, float alpha) {
-    int x, y;
-
-    for (x = x1; x <= x2; x++ ) {
-        for (y = y1; y <= y2; y++) {
-            setPixelWithAlpha(fb,x,y,r,g,b,alpha);
-        }
-    }
+    boxRGBA(fb->screen, x1, fb->height-1-y1, x2, fb->height-1-y2, r, g, b, alpha*255);
 }
 
 void drawTriangle(frameBuffer *fb, int x1, int y1, int x2, int y2, int x3, int y3, int r, int g, int b, float alpha) {
-    int swap, t;
-    struct {
-        float x, y;
-    } A, B, C, E, S;
-    float dx1,dx2,dx3;
-
-    A.x = x1;
-    A.y = y1;
-    B.x = x2;
-    B.y = y2;
-    C.x = x3;
-    C.y = y3;
-
-    /* For this algorithm to work we need to sort A, B, C by 'y' */
-    do {
-        swap = 0;
-        if (A.y > B.y) {
-            t = A.y; A.y = B.y; B.y = t;
-            t = A.x; A.x = B.x; B.x = t;
-            swap++;
-        }
-        if (B.y > C.y) {
-            t = B.y; B.y = C.y; C.y = t;
-            t = B.x; B.x = C.x; C.x = t;
-            swap++;
-        }
-    } while(swap);
-
-    if (B.y-A.y > 0) dx1=(B.x-A.x)/(B.y-A.y); else dx1=B.x - A.x;
-    if (C.y-A.y > 0) dx2=(C.x-A.x)/(C.y-A.y); else dx2=0;
-    if (C.y-B.y > 0) dx3=(C.x-B.x)/(C.y-B.y); else dx3=0;
-
-    S=E=A;
-    if(dx1 > dx2) {
-        for(;S.y<=B.y;S.y++,E.y++,S.x+=dx2,E.x+=dx1)
-            drawHline(fb,S.x,E.x,S.y,r,g,b,alpha);
-        E=B;
-        E.y+=1;
-        for(;S.y<=C.y;S.y++,E.y++,S.x+=dx2,E.x+=dx3)
-            drawHline(fb,S.x,E.x,S.y,r,g,b,alpha);
-    } else {
-        for(;S.y<=B.y;S.y++,E.y++,S.x+=dx1,E.x+=dx2)
-            drawHline(fb,S.x,E.x,S.y,r,g,b,alpha);
-        S=B;
-        S.y+=1;
-        for(;S.y<=C.y;S.y++,E.y++,S.x+=dx3,E.x+=dx2)
-            drawHline(fb,S.x,E.x,S.y,r,g,b,alpha);
-    }
+    filledTrigonRGBA(fb->screen, x1, fb->height-1-y1, x2, fb->height-1-y2, x3, fb->height-1-y3, r, g, b, alpha*255);
 }
 
-
-/* Bresenham algorithm */
 void drawLine(frameBuffer *fb, int x1, int y1, int x2, int y2, int r, int g, int b, float alpha) {
-    int dx = abs(x2-x1);
-    int dy = abs(y2-y1);
-    int sx = (x1 < x2) ? 1 : -1;
-    int sy = (y1 < y2) ? 1 : -1;
-    int err = dx-dy, e2;
-
-    while(1) {
-        setPixelWithAlpha(fb,x1,y1,r,g,b,alpha);
-        if (x1 == x2 && y1 == y2) break;
-        e2 = err*2;
-        if (e2 > -dy) {
-            err -= dy;
-            x1 += sx;
-        }
-        if (e2 < dx) {
-            err += dx;
-            y1 += sy;
-        }
-    }
+    lineRGBA(fb->screen, x1, fb->height-1-y1, x2, fb->height-1-y2, r, g, b, alpha*255);
 }
 
 /* ============================= Bitmap font =============================== */
