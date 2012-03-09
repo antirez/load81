@@ -1,0 +1,12 @@
+# Global Settings
+targetapp=LOAD81 by antirez
+filepath=./examples/
+
+# Command Settings
+
+# Extension Settings
+[lua]
+exepath=/media/SD16/pandora/hak/load81/PND_Make/load81
+extarg=;0;%na%;%filename%
+
+# Custom Entries Settings

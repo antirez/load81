@@ -26,12 +26,14 @@
 #include <stdlib.h>
 #include <math.h>
 #include <time.h>
+#include <sys/time.h>
+#include <errno.h>
+#include <ctype.h>
+
 #include <SDL.h>
 #include <lua.h>
 #include <lauxlib.h>
 #include <lualib.h>
-#include <errno.h>
-#include <ctype.h>
 
 #define NOTUSED(V) ((void) V)
 
@@ -59,9 +61,9 @@
 /* ============================= Data structures ============================ */
 
 typedef struct frameBuffer {
-    unsigned char *p;
     int width;
     int height;
+    SDL_Surface *screen;
 } frameBuffer;
 
 struct globalConfig {
@@ -70,14 +72,16 @@ struct globalConfig {
     int height;
     int r,g,b;
     float alpha;
+    long long start_ms;
     long long epoch;
-    SDL_Surface *screen;
     frameBuffer *fb;
     lua_State *L;
     unsigned char *font[256];
     char *filename;
     char *luaerr;
     int luaerrline;
+    /* Command line switches */
+    int opt_show_fps;
 } l81;
 
 typedef struct erow {
@@ -106,16 +110,25 @@ struct editorConfig {
     int dirty;      /* File modified but not saved. */
 } E;
 
-/* ============================= Frame buffer ============================== */
+/* =========================== Utility functions ============================ */
 
-frameBuffer *createFrameBuffer(int width, int height) {
-    frameBuffer *fb = malloc(sizeof(*fb));
+/* Return the UNIX time in microseconds */
+long long ustime(void) {
+    struct timeval tv;
+    long long ust;
 
-    fb->p = malloc(width*height*3);
-    fb->width = width;
-    fb->height = height;
-    return fb;
+    gettimeofday(&tv, NULL);
+    ust = ((long long)tv.tv_sec)*1000000;
+    ust += tv.tv_usec;
+    return ust;
 }
+
+/* Return the UNIX time in milliseconds */
+long long mstime(void) {
+    return ustime()/1000;
+}
+
+/* ============================= Frame buffer ============================== */
 
 SDL_Surface *sdlInit(int width, int height, int fullscreen) {
     int flags = SDL_SWSURFACE;
@@ -139,22 +152,13 @@ SDL_Surface *sdlInit(int width, int height, int fullscreen) {
     return screen;
 }
 
-void sdlShowRgb(SDL_Surface *screen, frameBuffer *fb)
-{
-    unsigned char *s, *p = fb->p;
-    int y,x;
+frameBuffer *createFrameBuffer(int width, int height) {
+    frameBuffer *fb = malloc(sizeof(*fb));
 
-    for (y = 0; y < fb->height; y++) {
-        s = screen->pixels+y*(screen->pitch);
-        for (x = 0; x < fb->width; x++) {
-            s[0] = p[2];
-            s[1] = p[1];
-            s[2] = p[0];
-            s += 3;
-            p += 3;
-        }
-    }
-    SDL_UpdateRect(screen, 0, 0, fb->width-1, fb->height-1);
+    fb->width = width;
+    fb->height = height;
+    fb->screen = sdlInit(width,height,0);
+    return fb;
 }
 
 /* ========================== Drawing primitives ============================ */
@@ -162,13 +166,40 @@ void sdlShowRgb(SDL_Surface *screen, frameBuffer *fb)
 void setPixelWithAlpha(frameBuffer *fb, int x, int y, int r, int g, int b, float alpha) {
     unsigned char *p;
 
-    y = fb->height-1-y; /* y=0 is bottom border of the screen */
-    p = fb->p+y*fb->width*3+x*3;
-
     if (x < 0 || x >= fb->width || y < 0 || y >= fb->height) return;
+    y = fb->height-1-y; /* y=0 is bottom border of the screen */
+    p = l81.fb->screen->pixels+y*l81.fb->screen->pitch+(x*3);
+
+#if SDL_BYTEORDER == SDL_LIL_ENDIAN
+    p[0] = (alpha*b)+((1-alpha)*p[0]);
+    p[1] = (alpha*g)+((1-alpha)*p[1]);
+    p[2] = (alpha*r)+((1-alpha)*p[2]);
+#else
     p[0] = (alpha*r)+((1-alpha)*p[0]);
     p[1] = (alpha*g)+((1-alpha)*p[1]);
     p[2] = (alpha*b)+((1-alpha)*p[2]);
+#endif
+}
+
+void fillBackground(frameBuffer *fb, int r, int g, int b) {
+    int x, y;
+    unsigned char *s;
+
+    for (y = 0; y < fb->height; y++) {
+        s = fb->screen->pixels+y*(fb->screen->pitch);
+        for (x = 0; x < fb->width; x++) {
+#if SDL_BYTEORDER == SDL_LIL_ENDIAN
+            s[0] = b;
+            s[1] = g;
+            s[2] = r;
+#else
+            s[0] = r;
+            s[1] = g;
+            s[2] = b;
+#endif
+            s += 3;
+        }
+    }
 }
 
 void drawHline(frameBuffer *fb, int x1, int x2, int y, int r, int g, int b, float alpha) {
@@ -445,7 +476,7 @@ int backgroundBinding(lua_State *L) {
     r = lua_tonumber(L,-3);
     g = lua_tonumber(L,-2);
     b = lua_tonumber(L,-1);
-    drawBox(l81.fb,0,0,l81.width-1,l81.height-1,r,g,b,1);
+    fillBackground(l81.fb,r,g,b);
     return 0;
 }
 
@@ -515,11 +546,21 @@ void resetEvents(void) {
     setTableField("keyboard","key","",0);
 }
 
+void showFPS(void) {
+    int elapsed_ms = mstime()-l81.start_ms;
+    char buf[64];
+
+    if (!elapsed_ms) return;
+    snprintf(buf,sizeof(buf),"FPS: %.2f",(float)(l81.epoch*1000)/elapsed_ms);
+    drawBox(l81.fb,0,0,100,20,0,0,0,1);
+    bfWriteString(l81.fb,0,0,buf,strlen(buf),128,128,128,1);
+}
+
 int processSdlEvents(void) {
     SDL_Event event;
 
     resetEvents();
-    if (SDL_PollEvent(&event)) {
+    while (SDL_PollEvent(&event)) {
         switch(event.type) {
         case SDL_KEYDOWN:
             switch(event.key.keysym.sym) {
@@ -548,6 +589,14 @@ int processSdlEvents(void) {
             exit(0);
             break;
         }
+        /* If the next event to process is of type KEYUP or
+         * MOUSEBUTTONUP we want to stop processing here, so that
+         * a fast up/down event be noticed by Lua. */
+        if (SDL_PeepEvents(&event,1,SDL_PEEKEVENT,SDL_ALLEVENTS)) {
+            if (event.type == SDL_KEYUP ||
+                event.type == SDL_MOUSEBUTTONUP)
+                break; /* Go to lua before processing more. */
+        }
     }
 
     /* Call the setup function, only the first time. */
@@ -556,7 +605,8 @@ int processSdlEvents(void) {
     draw();
     l81.epoch++;
     /* Refresh the screen */
-    sdlShowRgb(l81.screen,l81.fb);
+    if (l81.opt_show_fps) showFPS();
+    SDL_Flip(l81.fb->screen);
     /* Stop execution on error */
     return l81.luaerr != NULL;
 }
@@ -795,6 +845,19 @@ void editorDrawCursor(void) {
     E.cblink += 4;
 }
 
+#define LINE_TYPE_NORMAL 0
+#define LINE_TYPE_COMMENT 1
+#define LINE_TYPE_ERROR 2
+
+int editorLineType(erow *row, int filerow) {
+    char *p = row->chars;
+
+    if (l81.luaerr && l81.luaerrline == filerow) return LINE_TYPE_ERROR;
+    while(*p == ' ') p++;
+    if (*p == '-' && *(p+1) == '-') return LINE_TYPE_COMMENT;
+    return LINE_TYPE_NORMAL;
+}
+
 void editorDrawChars(void) {
     int y,x;
     erow *r;
@@ -807,23 +870,26 @@ void editorDrawChars(void) {
             int idx = x+E.coloff;
             int charx,chary;
             int tr,tg,tb;
+            int line_type = editorLineType(r,filerow);
 
             if (idx >= r->size) break;
             charx = x*FONT_KERNING;
             chary = l81.height-((y+1)*FONT_HEIGHT);
             charx += E.margin_left;
             chary -= E.margin_top;
-            if (l81.luaerr && l81.luaerrline == filerow) {
-                tr = 255; tg = 100, tb = 100;
-            } else {
-                tr = 165; tg = 165, tb = 255;
+            switch(line_type) {
+            case LINE_TYPE_ERROR: tr = 255; tg = 100, tb = 100; break;
+            case LINE_TYPE_COMMENT: tr = 180, tg = 180, tb = 0; break;
+            default: tr = 165; tg = 165, tb = 255; break;
             }
             bfWriteChar(l81.fb,charx,chary,r->chars[idx],tr,tg,tb,1);
         }
     }
-    if (l81.luaerr)
-        bfWriteString(l81.fb,E.margin_left,10,l81.luaerr,strlen(l81.luaerr),
-                      0,0,0,1);
+    if (l81.luaerr) {
+        char *p = strchr(l81.luaerr,':');
+        p = p ? p+1 : l81.luaerr;
+        bfWriteString(l81.fb,E.margin_left,10,p,strlen(p),0,0,0,1);
+    }
 }
 
 void editorDrawPowerOff(int x, int y) {
@@ -943,7 +1009,7 @@ int editorEvents(void) {
         E.cblink = 0;
     }
 
-    if (SDL_PollEvent(&event)) {
+    while (SDL_PollEvent(&event)) {
         E.lastevent = time(NULL);
         switch(event.type) {
         /* Key pressed */
@@ -1001,6 +1067,12 @@ int editorEvents(void) {
             case SDLK_HOME:
             case SDLK_LSHIFT:
             case SDLK_RSHIFT:
+            case SDLK_LCTRL:
+            case SDLK_RCTRL:
+            case SDLK_LALT:
+            case SDLK_RALT:
+            case SDLK_LMETA:
+            case SDLK_RMETA:
                 /* Ignored */
                 break;
             case SDLK_TAB:
@@ -1018,14 +1090,13 @@ int editorEvents(void) {
     /* Call the draw function at every iteration.  */
     editorDraw();
     /* Refresh the screen */
-    sdlShowRgb(l81.screen,l81.fb);
+    SDL_Flip(l81.fb->screen);
     return 0;
 }
 
 /* =========================== Initialization ============================== */
 
 void initConfig(void) {
-    l81.screen = NULL;
     l81.width = DEFAULT_WIDTH;
     l81.height = DEFAULT_HEIGHT;
     l81.r = 255;
@@ -1034,6 +1105,8 @@ void initConfig(void) {
     l81.L = NULL;
     l81.luaerr = NULL;
     l81.luaerrline = 0;
+    l81.opt_show_fps = 0;
+    l81.filename = NULL;
 
     /* Load the bitmap font */
     bfLoadFont((char**)l81.font);
@@ -1075,7 +1148,6 @@ void initEditor(void) {
 
 void initScreen(void) {
     l81.fb = createFrameBuffer(l81.width,l81.height);
-    l81.screen = sdlInit(l81.width,l81.height,0);
 }
 
 void resetProgram(void) {
@@ -1125,25 +1197,64 @@ void resetProgram(void) {
 
 /* ================================= Main ================================== */
 
+void showCliHelp(void) {
+    fprintf(stderr, "Usage: load81 [options] program.lua\n"
+           "  --width <pixels>       Set screen width\n"
+           "  --height <pixels>      Set screen height\n"
+           "  --fps                  Show frames per second\n"
+           "  --help                 Show this help screen\n"
+           );
+    exit(1);
+}
+
+void parseOptions(int argc, char **argv) {
+    int j;
+
+    for (j = 1; j < argc; j++) {
+        char *arg = argv[j];
+        int lastarg = j == argc-1;
+
+        if (!strcasecmp(arg,"--fps")) {
+            l81.opt_show_fps = 1;
+        } else if (!strcasecmp(arg,"--width") && !lastarg) {
+            l81.width = atoi(argv[++j]);
+        } else if (!strcasecmp(arg,"--height") && !lastarg) {
+            l81.height = atoi(argv[++j]);
+        } else if (!strcasecmp(arg,"--help")) {
+            showCliHelp();
+        } else {
+            if (l81.filename == NULL && arg[0] != '-') {
+                l81.filename = arg;
+            } else {
+                fprintf(stderr,
+                    "Unrecognized option or missing argument: %s\n\n", arg);
+                showCliHelp();
+            }
+        }
+    }
+    if (l81.filename == NULL) {
+        fprintf(stderr,"No Lua program filename specified.\n\n");
+        showCliHelp();
+    }
+}
+
 int main(int argc, char **argv) {
     NOTUSED(argc);
     NOTUSED(argv);
 
-    if (argc != 2) {
-        fprintf(stderr,"Usage: %s <filename>\n", argv[0]);
-        exit(1);
-    }
-
     initConfig();
+    parseOptions(argc,argv);
     initEditor();
     initScreen();
-    l81.filename = argv[1];
     editorOpen(l81.filename);
     while(1) {
         resetProgram();
         loadProgram();
-        if (l81.luaerr == NULL)
+        if (l81.luaerr == NULL) {
+            l81.start_ms = mstime();
             while(!processSdlEvents());
+            if (E.dirty && editorSave(l81.filename) == 0) E.dirty = 0;
+        }
         E.lastevent = time(NULL);
         while(!editorEvents());
     }
