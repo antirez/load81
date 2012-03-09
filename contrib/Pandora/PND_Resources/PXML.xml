@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PXML xmlns="http://openpandora.org/namespaces/PXML">
+   <package id="LOAD81">
+      <version major="1" minor="0" release="1" build="1" type="beta"/>
+      <author name="antirez" email="antirez@gmail.com"/>
+      <titles>
+         <title lang="en_US">LOAD81</title>
+      </titles>
+      <descriptions>
+         <description lang="en_US">SDL based Lua programming environment for kids, similar to Codea.</description>
+      </descriptions>
+   </package>
+   <application id="LOAD81" appdata="LOAD81">
+      <exec command="runme.sh" x11="req" standalone="true"/>
+      <version major="1" minor="0" release="1" build="1" type="beta"/>
+      <author name="antirez" email="antirez@gmail.com"/>
+      <osversion major="1" minor="0" release="0" build="0"/>
+      <titles>
+         <title lang="en_US">LOAD81</title>
+      </titles>
+      <title lang="en_US">LOAD81</title>
+      <descriptions>
+         <description lang="en_US">SDL based Lua programming environment for kids, similar to Codea.</description>
+      </descriptions>
+      <description lang="en_US">SDL based Lua programming environment for kids, similar to Codea.</description>
+      <icon src="icon.png"/>
+      <licenses>
+         <license name="COPYING" url="https://github.com/antirez/LOAD81/blob/master/COPYING" sourcecodeurl="https://github.com/antirez/LOAD81/"/>
+      </licenses>
+      <categories>
+         <category name="Development">
+         </category>
+      </categories>
+   </application>
+</PXML>

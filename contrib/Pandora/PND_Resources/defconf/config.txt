@@ -1,0 +1,127 @@
+
+# General Settings
+screen_width                  = 800                           # Screen width in pixels.
+screen_height                 = 480                           # Screen height in pixels.
+screen_depth                  = 16                            # Screen depth in bits per pixel.
+fullscreen                    = 1                             # True if screen is set to fullscreen mode, otherwise false.
+cpu_clock                     = 800                           # If supported, will set the CPU to clock value in Mhz.
+use_zip_support               = 1                             # True if launcher uses internal zip support.
+show_exts                     = 1                             # True if the selector should show file extensions in the filenames, otherwise false.
+show_hidden                   = 0                             # True if the selector should show hidden files and folders in the display list, otherwise false.
+show_pointer                  = 0                             # True if the selector should show the SDL pointer, otherwise false.
+show_labels                   = 1                             # True if the selector should show the button text ttf labels, otherwise false.
+unused_keys_select            = 0                             # True if any unmapped key events should cause the application launch, otherwise false.
+unused_buttons_select         = 0                             # True if any unmapped button events should cause the application launch, otherwise false.
+reload_launcher               = 1                             # True if the launcher should reload following the shutdown of the target application, otherwise false.
+text_scroll_option            = 1                             # True if horizontal the text scroll option should enabled, otherwise false.
+filename_arg_no_ext           = 0                             # True if the extension for file to be loaded is removed, else the extension is not removed from the filename.
+file_abs_path                 = 1                             # True if the absolute path for the file location should be used to calling the filname, else the path is omitted.
+font_size_small               = 8                             # Font size identified as small.
+font_size_medium              = 12                            # Font size identified as medium.
+font_size_large               = 14                            # Font size identified as large.
+entry_fast_mode               = 1                             # Fast entry navagation mode, where 0 for alphabetic mode 1 for search filter
+max_entries                   = 10                            # Maximum number of entries to be in the display list.
+scroll_speed                  = 2                             # The speed of the horizontal the text scroll speed, lower faster, higher slower..
+scroll_pause_speed            = 100                           # The time delay of the horizontal the text scroll when the left/right ends are reached, lower shorter, higher longer.
+profile_delimiter             = ;                             # Delimiter character
+
+# GUI Positions
+autolayout                    = 1                             # True if the launcher should auto position gui elements, if false manual positions are used.
+posx_title                    = 0                             # X coordinate in the upper left corner
+posy_title                    = 0                             # Y coordinate in the upper left corner
+posx_btnleft                  = 0                             # X coordinate in the upper left corner
+posy_btnleft                  = 0                             # Y coordinate in the upper left corner
+posx_btnright                 = 0                             # X coordinate in the bottom left corner
+posy_btnright                 = 0                             # Y coordinate in the bottom left corner
+posx_listnames                = 0                             # X coordinate in the upper left corner
+posy_listnames                = 0                             # Y coordinate in the upper left corner
+
+# GUI Options
+entry_y_delta                 = 2                             # todo
+entry_x_offset                = 8                             # todo
+entry_y_offset                = 8                             # todo
+button_w_left                 = 25                            # todo
+button_h_left                 = 15                            # todo
+button_w_right                = 80                            # todo
+button_h_right                = 30                            # todo
+preview_w                     = 80                            # todo
+preview_h                     = 60                            # todo
+entry_max_w                   = 224                           # todo
+filepath_max_w                = 304                           # todo
+
+# Button Enable Options
+buttonleft_enable_0           = 1                             # 
+buttonleft_enable_1           = 1                             # 
+buttonleft_enable_2           = 1                             # 
+buttonleft_enable_3           = 1                             # 
+buttonleft_enable_4           = 1                             # 
+buttonleft_enable_5           = 1                             # 
+buttonleft_enable_6           = 1                             # 
+buttonright_enable_0          = 1                             # 
+buttonright_enable_1          = 1                             # 
+buttonright_enable_2          = 1                             # 
+buttonright_enable_3          = 1                             # 
+
+# Paths
+zip_temp_path                 = ziptemp                       # Path to store extracted files from zip.
+previews_path                 = previews                      # Path to read preview graphics.
+font_path                     = DejaVuSansMono-Bold.ttf       # Path to ttf font file.
+image_background              = images/background.png         # Path to background graphic.
+image_pointer                 = images/pointer.png            # Path to pointer graphic
+image_selectpointer           = images/selectpointer.png      # Path to selector pointer graphic
+image_upone                   = images/button_oneup.png       # Path to button graphic for one up.
+image_downone                 = images/button_onedn.png       # Path to button graphic for one down.
+image_pageup                  = images/button_pageup.png      # Path to button graphic for page up.
+image_pagedown                = images/button_pagedn.png      # Path to button graphic for page down.
+image_dirup                   = images/button_dirup.png       # Path to button graphic for dir up.
+image_dirdown                 = images/button_dirdn.png       # Path to button graphic for dir down.
+image_cfgapp                  = images/button_cfg_app.png     # Path to button graphic for cfg app.
+image_cfgitem                 = images/button_cfg_item.png    # Path to button graphic for cfg item.
+image_select                  = images/button_select.png      # Path to button graphic for cfg select.
+image_quit                    = images/button_quit.png        # Path to button graphic for quit.
+
+# Colors
+#   0   white               1   yellow              2   fushsia             
+#   3   red                 4   silver              5   gray                
+#   6   olive               7   purple              8   maroon              
+#   9   aqua                10  lime                11  teal                
+#   12  green               13  blue                14  navy                
+#   15  black               
+color_buttons                 = 13                            # Color index used for the coloring the fallback button.
+color_fontbuttons             = 0                             # Color index used for the coloring the font used in the fallback button.
+color_background              = 0                             # Color index used for the coloring the screen background. 
+color_fontfiles               = 15                            # Color index used for the coloring the entries that are files.
+color_fontfolders             = 3                             # Color index used for the coloring the entries that are folders.
+
+# Controls
+
+#   Keyboard
+key_up                        = 273                           # up
+key_down                      = 274                           # down
+key_left                      = 276                           # left
+key_right                     = 275                           # right
+key_dirup                     = 306                           # left ctrl
+key_dirdown                   = 303                           # right shift
+key_cfgapp                    = 49                            # 1
+key_cfgentry                  = 50                            # 2
+key_setone                    = 51                            # 3
+key_setall                    = 52                            # 4
+key_select                    = 13                            # return
+key_back                      = 306                           # left ctrl
+key_quit                      = 27                            # escape
+
+#   Joystick
+button_up                     = 0                             # 
+button_down                   = 1                             # 
+button_left                   = 2                             # 
+button_right                  = 3                             # 
+button_dirup                  = 4                             # 
+button_dirdown                = 5                             # 
+button_cfgapp                 = 6                             # 
+button_cfgentry               = 7                             # 
+button_setone                 = 8                             # 
+button_setall                 = 9                             # 
+button_select                 = 10                            # 
+button_back                   = 11                            # 
+button_quit                   = 12                            # 
+deadzone                      = 10000                         # Deadzone for analog joysticks.
