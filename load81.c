@@ -70,6 +70,7 @@ struct globalConfig {
     int height;
     int r,g,b;
     float alpha;
+    time_t start;
     long long epoch;
     SDL_Surface *screen;
     frameBuffer *fb;
@@ -78,6 +79,8 @@ struct globalConfig {
     char *filename;
     char *luaerr;
     int luaerrline;
+    /* Command line switches */
+    int opt_show_fps;
 } l81;
 
 typedef struct erow {
@@ -519,6 +522,16 @@ void resetEvents(void) {
     setTableField("keyboard","key","",0);
 }
 
+void showFPS(void) {
+    int elapsed = time(NULL)-l81.start;
+    char buf[64];
+
+    if (!elapsed) return;
+    snprintf(buf,sizeof(buf),"FPS: %d",(int)(l81.epoch/elapsed));
+    drawBox(l81.fb,0,0,100,20,0,0,0,1);
+    bfWriteString(l81.fb,0,0,buf,strlen(buf),128,128,128,1);
+}
+
 int processSdlEvents(void) {
     SDL_Event event;
 
@@ -568,6 +581,7 @@ int processSdlEvents(void) {
     draw();
     l81.epoch++;
     /* Refresh the screen */
+    if (l81.opt_show_fps) showFPS();
     sdlShowRgb(l81.screen,l81.fb);
     /* Stop execution on error */
     return l81.luaerr != NULL;
@@ -1068,6 +1082,8 @@ void initConfig(void) {
     l81.L = NULL;
     l81.luaerr = NULL;
     l81.luaerrline = 0;
+    l81.opt_show_fps = 1;
+    l81.filename = NULL;
 
     /* Load the bitmap font */
     bfLoadFont((char**)l81.font);
@@ -1159,24 +1175,61 @@ void resetProgram(void) {
 
 /* ================================= Main ================================== */
 
+void showCliHelp(void) {
+    fprintf(stderr, "Usage: load81 [options] program.lua\n"
+           "  --width <pixels>       Set screen width\n"
+           "  --height <pixels>      Set screen height\n"
+           "  --fps                  Show frames per second\n"
+           "  --help                 Show this help screen\n"
+           );
+    exit(1);
+}
+
+void parseOptions(int argc, char **argv) {
+    int j;
+
+    for (j = 1; j < argc; j++) {
+        char *arg = argv[j];
+        int lastarg = j == argc-1;
+
+        if (!strcasecmp(arg,"--fps")) {
+            l81.opt_show_fps = 1;
+        } else if (!strcasecmp(arg,"--width") && !lastarg) {
+            l81.width = atoi(argv[++j]);
+        } else if (!strcasecmp(arg,"--height") && !lastarg) {
+            l81.height = atoi(argv[++j]);
+        } else if (!strcasecmp(arg,"--help")) {
+            showCliHelp();
+        } else {
+            if (l81.filename == NULL && arg[0] != '-') {
+                l81.filename = arg;
+            } else {
+                fprintf(stderr,
+                    "Unrecognized option or missing argument: %s\n\n", arg);
+                showCliHelp();
+            }
+        }
+    }
+    if (l81.filename == NULL) {
+        fprintf(stderr,"No Lua program filename specified.\n\n");
+        showCliHelp();
+    }
+}
+
 int main(int argc, char **argv) {
     NOTUSED(argc);
     NOTUSED(argv);
 
-    if (argc != 2) {
-        fprintf(stderr,"Usage: %s <filename>\n", argv[0]);
-        exit(1);
-    }
-
     initConfig();
+    parseOptions(argc,argv);
     initEditor();
     initScreen();
-    l81.filename = argv[1];
     editorOpen(l81.filename);
     while(1) {
         resetProgram();
         loadProgram();
         if (l81.luaerr == NULL) {
+            l81.start = time(NULL);
             while(!processSdlEvents());
             if (E.dirty && editorSave(l81.filename) == 0) E.dirty = 0;
         }
