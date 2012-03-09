@@ -233,13 +233,10 @@ void drawEllipse(frameBuffer *fb, int xc, int yc, int radx, int rady, int r, int
 }
 
 void drawBox(frameBuffer *fb, int x1, int y1, int x2, int y2, int r, int g, int b, float alpha) {
-    int x, y;
+    int y;
 
-    for (x = x1; x <= x2; x++ ) {
-        for (y = y1; y <= y2; y++) {
-            setPixelWithAlpha(fb,x,y,r,g,b,alpha);
-        }
-    }
+    for (y = y1; y <= y2; y++)
+        drawHline(fb,x1,x2,y,r,g,b,alpha);
 }
 
 void drawTriangle(frameBuffer *fb, int x1, int y1, int x2, int y2, int x3, int y3, int r, int g, int b, float alpha) {
