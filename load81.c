@@ -1102,7 +1102,7 @@ void initConfig(void) {
     l81.L = NULL;
     l81.luaerr = NULL;
     l81.luaerrline = 0;
-    l81.opt_show_fps = 1;
+    l81.opt_show_fps = 0;
     l81.filename = NULL;
 
     /* Load the bitmap font */
