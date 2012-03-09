@@ -26,12 +26,14 @@
 #include <stdlib.h>
 #include <math.h>
 #include <time.h>
+#include <sys/time.h>
+#include <errno.h>
+#include <ctype.h>
+
 #include <SDL.h>
 #include <lua.h>
 #include <lauxlib.h>
 #include <lualib.h>
-#include <errno.h>
-#include <ctype.h>
 
 #define NOTUSED(V) ((void) V)
 
@@ -70,7 +72,7 @@ struct globalConfig {
     int height;
     int r,g,b;
     float alpha;
-    time_t start;
+    long long start_ms;
     long long epoch;
     SDL_Surface *screen;
     frameBuffer *fb;
@@ -108,6 +110,24 @@ struct editorConfig {
     keyState key[KEY_MAX];   /* Remember if a key is pressed / repeated. */
     int dirty;      /* File modified but not saved. */
 } E;
+
+/* =========================== Utility functions ============================ */
+
+/* Return the UNIX time in microseconds */
+long long ustime(void) {
+    struct timeval tv;
+    long long ust;
+
+    gettimeofday(&tv, NULL);
+    ust = ((long long)tv.tv_sec)*1000000;
+    ust += tv.tv_usec;
+    return ust;
+}
+
+/* Return the UNIX time in milliseconds */
+long long mstime(void) {
+    return ustime()/1000;
+}
 
 /* ============================= Frame buffer ============================== */
 
@@ -523,11 +543,11 @@ void resetEvents(void) {
 }
 
 void showFPS(void) {
-    int elapsed = time(NULL)-l81.start;
+    int elapsed_ms = mstime()-l81.start_ms;
     char buf[64];
 
-    if (!elapsed) return;
-    snprintf(buf,sizeof(buf),"FPS: %d",(int)(l81.epoch/elapsed));
+    if (!elapsed_ms) return;
+    snprintf(buf,sizeof(buf),"FPS: %.2f",(float)(l81.epoch*1000)/elapsed_ms);
     drawBox(l81.fb,0,0,100,20,0,0,0,1);
     bfWriteString(l81.fb,0,0,buf,strlen(buf),128,128,128,1);
 }
@@ -1229,7 +1249,7 @@ int main(int argc, char **argv) {
         resetProgram();
         loadProgram();
         if (l81.luaerr == NULL) {
-            l81.start = time(NULL);
+            l81.start_ms = mstime();
             while(!processSdlEvents());
             if (E.dirty && editorSave(l81.filename) == 0) E.dirty = 0;
         }
