@@ -61,9 +61,9 @@
 /* ============================= Data structures ============================ */
 
 typedef struct frameBuffer {
-    unsigned char *p;
     int width;
     int height;
+    SDL_Surface *screen;
 } frameBuffer;
 
 struct globalConfig {
@@ -74,7 +74,6 @@ struct globalConfig {
     float alpha;
     long long start_ms;
     long long epoch;
-    SDL_Surface *screen;
     frameBuffer *fb;
     lua_State *L;
     unsigned char *font[256];
@@ -131,15 +130,6 @@ long long mstime(void) {
 
 /* ============================= Frame buffer ============================== */
 
-frameBuffer *createFrameBuffer(int width, int height) {
-    frameBuffer *fb = malloc(sizeof(*fb));
-
-    fb->p = malloc(width*height*3);
-    fb->width = width;
-    fb->height = height;
-    return fb;
-}
-
 SDL_Surface *sdlInit(int width, int height, int fullscreen) {
     int flags = SDL_SWSURFACE;
     SDL_Surface *screen;
@@ -162,26 +152,13 @@ SDL_Surface *sdlInit(int width, int height, int fullscreen) {
     return screen;
 }
 
-void sdlShowRgb(SDL_Surface *screen, frameBuffer *fb)
-{
-    unsigned char *s, *p = fb->p;
-    int y,x;
+frameBuffer *createFrameBuffer(int width, int height) {
+    frameBuffer *fb = malloc(sizeof(*fb));
 
-    for (y = 0; y < fb->height; y++) {
-        s = screen->pixels+y*(screen->pitch);
-        for (x = 0; x < fb->width; x++) {
-#if SDL_BYTEORDER == SDL_LIL_ENDIAN
-            s[0] = p[2];
-            s[1] = p[1];
-            s[2] = p[0];
-#else
-	    memcpy(s, p, 3);
-#endif
-            s += 3;
-            p += 3;
-        }
-    }
-    SDL_UpdateRect(screen, 0, 0, fb->width-1, fb->height-1);
+    fb->width = width;
+    fb->height = height;
+    fb->screen = sdlInit(width,height,0);
+    return fb;
 }
 
 /* ========================== Drawing primitives ============================ */
@@ -189,13 +166,19 @@ void sdlShowRgb(SDL_Surface *screen, frameBuffer *fb)
 void setPixelWithAlpha(frameBuffer *fb, int x, int y, int r, int g, int b, float alpha) {
     unsigned char *p;
 
-    y = fb->height-1-y; /* y=0 is bottom border of the screen */
-    p = fb->p+y*fb->width*3+x*3;
-
     if (x < 0 || x >= fb->width || y < 0 || y >= fb->height) return;
+    y = fb->height-1-y; /* y=0 is bottom border of the screen */
+    p = l81.fb->screen->pixels+y*l81.fb->screen->pitch+(x*3);
+
+#if SDL_BYTEORDER == SDL_LIL_ENDIAN
+    p[0] = (alpha*b)+((1-alpha)*p[0]);
+    p[1] = (alpha*g)+((1-alpha)*p[1]);
+    p[2] = (alpha*r)+((1-alpha)*p[2]);
+#else
     p[0] = (alpha*r)+((1-alpha)*p[0]);
     p[1] = (alpha*g)+((1-alpha)*p[1]);
     p[2] = (alpha*b)+((1-alpha)*p[2]);
+#endif
 }
 
 void drawHline(frameBuffer *fb, int x1, int x2, int y, int r, int g, int b, float alpha) {
@@ -602,7 +585,7 @@ int processSdlEvents(void) {
     l81.epoch++;
     /* Refresh the screen */
     if (l81.opt_show_fps) showFPS();
-    sdlShowRgb(l81.screen,l81.fb);
+    SDL_Flip(l81.fb->screen);
     /* Stop execution on error */
     return l81.luaerr != NULL;
 }
@@ -1086,14 +1069,13 @@ int editorEvents(void) {
     /* Call the draw function at every iteration.  */
     editorDraw();
     /* Refresh the screen */
-    sdlShowRgb(l81.screen,l81.fb);
+    SDL_Flip(l81.fb->screen);
     return 0;
 }
 
 /* =========================== Initialization ============================== */
 
 void initConfig(void) {
-    l81.screen = NULL;
     l81.width = DEFAULT_WIDTH;
     l81.height = DEFAULT_HEIGHT;
     l81.r = 255;
@@ -1145,7 +1127,6 @@ void initEditor(void) {
 
 void initScreen(void) {
     l81.fb = createFrameBuffer(l81.width,l81.height);
-    l81.screen = sdlInit(l81.width,l81.height,0);
 }
 
 void resetProgram(void) {
