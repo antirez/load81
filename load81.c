@@ -28,6 +28,7 @@
 #include <time.h>
 #include <SDL.h>
 #include <SDL_gfxPrimitives.h>
+#include <SDL_framerate.h>
 #include <lua.h>
 #include <lauxlib.h>
 #include <lualib.h>
@@ -73,6 +74,7 @@ struct globalConfig {
     float alpha;
     long long epoch;
     SDL_Surface *screen;
+    FPSmanager fpsMgr;
     frameBuffer *fb;
     lua_State *L;
     unsigned char *font[256];
@@ -137,6 +139,7 @@ SDL_Surface *sdlInit(int width, int height, int fullscreen) {
      * keys are translated into characters with automatic support for modifiers
      * (for instance shift modifier to print capital letters and symbols). */
     SDL_EnableUNICODE(SDL_ENABLE);
+    SDL_initFramerate(&l81.fpsMgr);
     return screen;
 }
 
@@ -451,6 +454,7 @@ int processSdlEvents(void) {
     l81.epoch++;
     /* Refresh the screen */
     SDL_Flip(l81.screen);
+    SDL_framerateDelay(&l81.fpsMgr);
     /* Stop execution on error */
     return l81.luaerr != NULL;
 }
@@ -935,6 +939,7 @@ int editorEvents(void) {
     editorDraw();
     /* Refresh the screen */
     SDL_Flip(l81.screen);
+    SDL_framerateDelay(&l81.fpsMgr);
     return 0;
 }
 
