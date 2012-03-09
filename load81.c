@@ -181,6 +181,27 @@ void setPixelWithAlpha(frameBuffer *fb, int x, int y, int r, int g, int b, float
 #endif
 }
 
+void fillBackground(frameBuffer *fb, int r, int g, int b) {
+    int x, y;
+    unsigned char *s;
+
+    for (y = 0; y < fb->height; y++) {
+        s = fb->screen->pixels+y*(fb->screen->pitch);
+        for (x = 0; x < fb->width; x++) {
+#if SDL_BYTEORDER == SDL_LIL_ENDIAN
+            s[0] = b;
+            s[1] = g;
+            s[2] = r;
+#else
+            s[0] = r;
+            s[1] = g;
+            s[2] = b;
+#endif
+            s += 3;
+        }
+    }
+}
+
 void drawHline(frameBuffer *fb, int x1, int x2, int y, int r, int g, int b, float alpha) {
     int aux, x;
 
@@ -455,7 +476,7 @@ int backgroundBinding(lua_State *L) {
     r = lua_tonumber(L,-3);
     g = lua_tonumber(L,-2);
     b = lua_tonumber(L,-1);
-    drawBox(l81.fb,0,0,l81.width-1,l81.height-1,r,g,b,1);
+    fillBackground(l81.fb,r,g,b);
     return 0;
 }
 
