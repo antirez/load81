@@ -1,3 +1,6 @@
+-- Flames.lua, contributed by pmprog in the OpenPandora board.
+-- See http://boards.openpandora.org/index.php?/topic/7405-here-is-a-pnd-for-load81/
+
 function setup()
     local x, y, l
 
