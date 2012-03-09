@@ -144,7 +144,7 @@ SDL_Surface *sdlInit(int width, int height, int fullscreen) {
         return NULL;
     }
     atexit(SDL_Quit);
-    screen = SDL_SetVideoMode(width,height,24,flags);
+    screen = SDL_SetVideoMode(width,height,0,flags);
     if (!screen) {
         fprintf(stderr, "Can't set the video mode: %s\n", SDL_GetError());
         return NULL;
