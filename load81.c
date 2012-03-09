@@ -70,6 +70,7 @@ struct globalConfig {
     /* Runtime */
     int width;
     int height;
+    int fps;
     int r,g,b;
     float alpha;
     long long start_ms;
@@ -558,6 +559,7 @@ void showFPS(void) {
 
 int processSdlEvents(void) {
     SDL_Event event;
+    long long start = mstime(), frametime;
 
     resetEvents();
     while (SDL_PollEvent(&event)) {
@@ -607,6 +609,10 @@ int processSdlEvents(void) {
     /* Refresh the screen */
     if (l81.opt_show_fps) showFPS();
     SDL_Flip(l81.fb->screen);
+    /* Wait some time if the frame was produced in less than 1/FPS seconds. */
+    frametime = mstime()-start;
+    if (frametime < (1000/l81.fps))
+        sleep_milliseconds((1000/l81.fps)-frametime);
     /* Stop execution on error */
     return l81.luaerr != NULL;
 }
@@ -1099,6 +1105,7 @@ int editorEvents(void) {
 void initConfig(void) {
     l81.width = DEFAULT_WIDTH;
     l81.height = DEFAULT_HEIGHT;
+    l81.fps = 30;
     l81.r = 255;
     l81.g = l81.b = 0;
     l81.alpha = 1;
