@@ -820,15 +820,18 @@ int editorOpen(char *filename) {
     E.dirty = 0;
     return 0;
 #else
-    /* TODO: implement file IO for NaCl */
-    editorInsertRow(E.numrows, "function draw()");
-    editorInsertRow(E.numrows, "    if mouse.pressed['1'] then");
-    editorInsertRow(E.numrows, "        fill(255,0,0,.2)");
-    editorInsertRow(E.numrows, "    else");
-    editorInsertRow(E.numrows, "        fill(0,0,255,.2)");
-    editorInsertRow(E.numrows, "    end");
-    editorInsertRow(E.numrows, "    ellipse(mouse.x,mouse.y,30,30)");
-    editorInsertRow(E.numrows, "end");
+    /* The asteroids example is embedded in an object file by the NaCl build
+     * script.
+     * TODO: implement file IO for NaCl. */
+    extern char _binary_examples_asteroids_lua_start[];
+    extern char _binary_examples_asteroids_lua_end[];
+    char *p = _binary_examples_asteroids_lua_start;
+    char *np;
+    while ((np = memchr(p, '\n', _binary_examples_asteroids_lua_end-p))) {
+      *np = '\0';
+      editorInsertRow(E.numrows, p);
+      p = np + 1;
+    }
     E.dirty = 0;
     return 0;
 #endif

@@ -16,7 +16,14 @@ for HOST in i686-nacl x86_64-nacl
 do
     export PKG_CONFIG_PATH=$TOOLCHAIN/$HOST/usr/lib/pkgconfig
     export CC=$HOST-gcc
-    $CC -O2 -Wall -W $ROOT/load81.c $NACL_ROOT/nacl.cc `pkg-config --cflags sdl` `pkg-config --libs sdl` -llua -lm -lppapi -lppapi_cpp -lstdc++ -lcrt_common -lnosys -o $NACL_ROOT/load81-$HOST.nexe
+    BFDARCH=i386
+    if [ $HOST == i686-nacl ]; then
+        BFDNAME=elf32-nacl
+    else
+        BFDNAME=elf64-nacl
+    fi
+    (cd $ROOT && $HOST-objcopy -I binary -O $BFDNAME -B $BFDARCH examples/asteroids.lua $NACL_ROOT/example.o)
+    $CC -O2 -Wall -W $ROOT/load81.c $NACL_ROOT/example.o $NACL_ROOT/nacl.cc `pkg-config --cflags sdl` `pkg-config --libs sdl` -llua -lm -lppapi -lppapi_cpp -lstdc++ -lcrt_common -lnosys -o $NACL_ROOT/load81-$HOST.nexe
     $HOST-strip $NACL_ROOT/load81-$HOST.nexe
 done
 
