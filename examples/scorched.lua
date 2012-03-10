@@ -34,7 +34,7 @@ function setup_players()
         local player = {}
         player.x = math.random(10, WIDTH-10)
         player.y = terrain[player.x]
-        player.angle = 30
+        player.angle = 90
         player.r = 255
         player.g = 0
         player.b = 0
@@ -45,11 +45,22 @@ function setup_players()
         end
         players[i] = player
     end
+    current_player = players[1]
 end
 
 function draw()
+    handle_input()
     draw_terrain()
     draw_players()
+end
+
+function handle_input()
+    if keyboard.pressed['left'] then
+        current_player.angle = current_player.angle + 1
+    end
+    if keyboard.pressed['right'] then
+        current_player.angle = current_player.angle - 1
+    end
 end
 
 function draw_terrain()
