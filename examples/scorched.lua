@@ -3,12 +3,12 @@
 NUM_PLAYERS = 3
 
 function setup()
-	setup_terrain()
+    setup_terrain()
     setup_players()
 end
 
 function setup_terrain()
-	terrain = {}
+    terrain = {}
     local periods = {}
     local amplitudes = {}
     local nwaves = 10
@@ -16,13 +16,13 @@ function setup_terrain()
         periods[i] = math.random()*0.1 + 0.01
         amplitudes[i] = math.random() * 50
     end
-	for i = 0, WIDTH-1 do
+    for i = 0, WIDTH-1 do
         local h = 200
         for j = 1, nwaves do
             h = h + math.sin(i*periods[j])*amplitudes[j]
         end
         terrain[i] = h
-	end
+    end
 end
 
 function setup_players()
@@ -44,16 +44,16 @@ function setup_players()
 end
 
 function draw()
-	draw_terrain()
+    draw_terrain()
     draw_players()
 end
 
 function draw_terrain()
-	background(30, 30, 200)
+    background(30, 30, 200)
     fill(20, 150, 20, 1.0)
-	for i = 0, WIDTH-1 do
-		line(i, 0, i, terrain[i])
-	end
+    for i = 0, WIDTH-1 do
+        line(i, 0, i, terrain[i])
+    end
 end
 
 function draw_players()
