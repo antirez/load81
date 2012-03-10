@@ -31,6 +31,8 @@
 #include <ctype.h>
 
 #include <SDL.h>
+#include <SDL_gfxPrimitives.h>
+#include <SDL_framerate.h>
 #include <lua.h>
 #include <lauxlib.h>
 #include <lualib.h>
@@ -47,6 +49,8 @@
 #define POWEROFF_BUTTON_Y   18
 #define SAVE_BUTTON_X       (l81.width-E.margin_right-13)
 #define SAVE_BUTTON_Y       (l81.height-16)
+
+#define EDITOR_FPS 30
 
 /* ============================== Portable sleep ============================ */
 
@@ -72,9 +76,11 @@ struct globalConfig {
     int width;
     int height;
     int r,g,b;
-    float alpha;
+    int alpha;
+    int fps;
     long long start_ms;
     long long epoch;
+    FPSmanager fps_mgr;
     frameBuffer *fb;
     lua_State *L;
     unsigned char *font[256];
@@ -130,7 +136,6 @@ long long mstime(void) {
 }
 
 /* ============================= Frame buffer ============================== */
-
 SDL_Surface *sdlInit(int width, int height, int fullscreen) {
     int flags = SDL_SWSURFACE;
     SDL_Surface *screen;
@@ -141,7 +146,7 @@ SDL_Surface *sdlInit(int width, int height, int fullscreen) {
         return NULL;
     }
     atexit(SDL_Quit);
-    screen = SDL_SetVideoMode(width,height,24,flags);
+    screen = SDL_SetVideoMode(width,height,0,flags);
     if (!screen) {
         fprintf(stderr, "Can't set the video mode: %s\n", SDL_GetError());
         return NULL;
@@ -150,6 +155,7 @@ SDL_Surface *sdlInit(int width, int height, int fullscreen) {
      * keys are translated into characters with automatic support for modifiers
      * (for instance shift modifier to print capital letters and symbols). */
     SDL_EnableUNICODE(SDL_ENABLE);
+    SDL_initFramerate(&l81.fps_mgr);
     return screen;
 }
 
@@ -162,154 +168,34 @@ frameBuffer *createFrameBuffer(int width, int height) {
     return fb;
 }
 
-/* ========================== Drawing primitives ============================ */
-
-void setPixelWithAlpha(frameBuffer *fb, int x, int y, int r, int g, int b, float alpha) {
-    unsigned char *p;
-
-    if (x < 0 || x >= fb->width || y < 0 || y >= fb->height) return;
-    y = fb->height-1-y; /* y=0 is bottom border of the screen */
-    p = l81.fb->screen->pixels+y*l81.fb->screen->pitch+(x*3);
-
-#if SDL_BYTEORDER == SDL_LIL_ENDIAN
-    p[0] = (alpha*b)+((1-alpha)*p[0]);
-    p[1] = (alpha*g)+((1-alpha)*p[1]);
-    p[2] = (alpha*r)+((1-alpha)*p[2]);
-#else
-    p[0] = (alpha*r)+((1-alpha)*p[0]);
-    p[1] = (alpha*g)+((1-alpha)*p[1]);
-    p[2] = (alpha*b)+((1-alpha)*p[2]);
-#endif
+void setPixelWithAlpha(frameBuffer *fb, int x, int y, int r, int g, int b, int alpha) {
+    pixelRGBA(fb->screen, x, fb->height-1-y, r, g, b, alpha);
 }
 
 void fillBackground(frameBuffer *fb, int r, int g, int b) {
-    int x, y;
-    unsigned char *s;
-
-    for (y = 0; y < fb->height; y++) {
-        s = fb->screen->pixels+y*(fb->screen->pitch);
-        for (x = 0; x < fb->width; x++) {
-#if SDL_BYTEORDER == SDL_LIL_ENDIAN
-            s[0] = b;
-            s[1] = g;
-            s[2] = r;
-#else
-            s[0] = r;
-            s[1] = g;
-            s[2] = b;
-#endif
-            s += 3;
-        }
-    }
+    boxRGBA(fb->screen, 0, 0, fb->width-1, fb->height-1, r, g, b, 255);
 }
 
-void drawHline(frameBuffer *fb, int x1, int x2, int y, int r, int g, int b, float alpha) {
-    int aux, x;
+/* ========================== Drawing primitives ============================ */
 
-    if (x1 > x2) {
-        aux = x1;
-        x1 = x2;
-        x2 = aux;
-    }
-    for (x = x1; x <= x2; x++)
-        setPixelWithAlpha(fb,x,y,r,g,b,alpha);
+void drawHline(frameBuffer *fb, int x1, int x2, int y, int r, int g, int b, int alpha) {
+    hlineRGBA(fb->screen, x1, x2, fb->height-1-y, r, g, b, alpha);
 }
 
-void drawEllipse(frameBuffer *fb, int xc, int yc, int radx, int rady, int r, int g, int b, float alpha) {
-    int x1, x2, y;
-    float xshift;
-
-    for (y=yc-rady; y<=yc+rady; y++) {
-        xshift = sqrt((rady*rady) - ((y - yc)*(y - yc)))*((float)radx/rady);
-        x1 = round(xc-xshift);
-        x2 = round(xc+xshift);
-        drawHline(fb,x1,x2,y,r,g,b,alpha);
-    }
+void drawEllipse(frameBuffer *fb, int xc, int yc, int radx, int rady, int r, int g, int b, int alpha) {
+    filledEllipseRGBA(fb->screen, xc, fb->height-1-yc, radx, rady, r, g, b, alpha);
 }
 
-void drawBox(frameBuffer *fb, int x1, int y1, int x2, int y2, int r, int g, int b, float alpha) {
-    int x, y;
-
-    for (x = x1; x <= x2; x++ ) {
-        for (y = y1; y <= y2; y++) {
-            setPixelWithAlpha(fb,x,y,r,g,b,alpha);
-        }
-    }
+void drawBox(frameBuffer *fb, int x1, int y1, int x2, int y2, int r, int g, int b, int alpha) {
+    boxRGBA(fb->screen, x1, fb->height-1-y1, x2, fb->height-1-y2, r, g, b, alpha);
 }
 
-void drawTriangle(frameBuffer *fb, int x1, int y1, int x2, int y2, int x3, int y3, int r, int g, int b, float alpha) {
-    int swap, t;
-    struct {
-        float x, y;
-    } A, B, C, E, S;
-    float dx1,dx2,dx3;
-
-    A.x = x1;
-    A.y = y1;
-    B.x = x2;
-    B.y = y2;
-    C.x = x3;
-    C.y = y3;
-
-    /* For this algorithm to work we need to sort A, B, C by 'y' */
-    do {
-        swap = 0;
-        if (A.y > B.y) {
-            t = A.y; A.y = B.y; B.y = t;
-            t = A.x; A.x = B.x; B.x = t;
-            swap++;
-        }
-        if (B.y > C.y) {
-            t = B.y; B.y = C.y; C.y = t;
-            t = B.x; B.x = C.x; C.x = t;
-            swap++;
-        }
-    } while(swap);
-
-    if (B.y-A.y > 0) dx1=(B.x-A.x)/(B.y-A.y); else dx1=B.x - A.x;
-    if (C.y-A.y > 0) dx2=(C.x-A.x)/(C.y-A.y); else dx2=0;
-    if (C.y-B.y > 0) dx3=(C.x-B.x)/(C.y-B.y); else dx3=0;
-
-    S=E=A;
-    if(dx1 > dx2) {
-        for(;S.y<=B.y;S.y++,E.y++,S.x+=dx2,E.x+=dx1)
-            drawHline(fb,S.x,E.x,S.y,r,g,b,alpha);
-        E=B;
-        E.y+=1;
-        for(;S.y<=C.y;S.y++,E.y++,S.x+=dx2,E.x+=dx3)
-            drawHline(fb,S.x,E.x,S.y,r,g,b,alpha);
-    } else {
-        for(;S.y<=B.y;S.y++,E.y++,S.x+=dx1,E.x+=dx2)
-            drawHline(fb,S.x,E.x,S.y,r,g,b,alpha);
-        S=B;
-        S.y+=1;
-        for(;S.y<=C.y;S.y++,E.y++,S.x+=dx3,E.x+=dx2)
-            drawHline(fb,S.x,E.x,S.y,r,g,b,alpha);
-    }
+void drawTriangle(frameBuffer *fb, int x1, int y1, int x2, int y2, int x3, int y3, int r, int g, int b, int alpha) {
+    filledTrigonRGBA(fb->screen, x1, fb->height-1-y1, x2, fb->height-1-y2, x3, fb->height-1-y3, r, g, b, alpha);
 }
 
-
-/* Bresenham algorithm */
-void drawLine(frameBuffer *fb, int x1, int y1, int x2, int y2, int r, int g, int b, float alpha) {
-    int dx = abs(x2-x1);
-    int dy = abs(y2-y1);
-    int sx = (x1 < x2) ? 1 : -1;
-    int sy = (y1 < y2) ? 1 : -1;
-    int err = dx-dy, e2;
-
-    while(1) {
-        setPixelWithAlpha(fb,x1,y1,r,g,b,alpha);
-        if (x1 == x2 && y1 == y2) break;
-        e2 = err*2;
-        if (e2 > -dy) {
-            err -= dy;
-            x1 += sx;
-        }
-        if (e2 < dx) {
-            err += dx;
-            y1 += sy;
-        }
-    }
+void drawLine(frameBuffer *fb, int x1, int y1, int x2, int y2, int r, int g, int b, int alpha) {
+    lineRGBA(fb->screen, x1, fb->height-1-y1, x2, fb->height-1-y2, r, g, b, alpha);
 }
 
 /* ============================= Bitmap font =============================== */
@@ -320,7 +206,7 @@ void bfLoadFont(char **c) {
     #include "bitfont.h"
 }
 
-void bfWriteChar(frameBuffer *fb, int xp, int yp, int c, int r, int g, int b, float alpha) {
+void bfWriteChar(frameBuffer *fb, int xp, int yp, int c, int r, int g, int b, int alpha) {
     int x,y;
     unsigned char *bitmap = l81.font[c&0xff];
 
@@ -336,7 +222,7 @@ void bfWriteChar(frameBuffer *fb, int xp, int yp, int c, int r, int g, int b, fl
     }
 }
 
-void bfWriteString(frameBuffer *fb, int xp, int yp, const char *s, int len, int r, int g, int b, float alpha) {
+void bfWriteString(frameBuffer *fb, int xp, int yp, const char *s, int len, int r, int g, int b, int alpha) {
     int i;
 
     for (i = 0; i < len; i++)
@@ -407,28 +293,33 @@ lua_Number getNumber(char *name) {
     return n;
 }
 
-/* Set a Lua global table field to the specified value.
- * If s == NULL the field is set to the specified number 'n',
- * otherwise it is set to the specified string 's'. */
-void setTableField(char *name, char *field, char *s, lua_Number n) {
-    lua_getglobal(l81.L,name);
+/* Set a Lua global table field to the value on the top of the Lua stack. */
+void setTableField(char *name, char *field) {
+    lua_getglobal(l81.L,name);          /* Stack: val table */
     /* Create the table if needed */
     if (lua_isnil(l81.L,-1)) {
-        lua_pop(l81.L,1);
-        lua_newtable(l81.L);
-        lua_setglobal(l81.L,name);
-        lua_getglobal(l81.L,name);
+        lua_pop(l81.L,1);               /* Stack: val */
+        lua_newtable(l81.L);            /* Stack: val table */
+        lua_setglobal(l81.L,name);      /* Stack: val */
+        lua_getglobal(l81.L,name);      /* Stack: val table */
     }
     /* Set the field */
     if (lua_istable(l81.L,-1)) {
-        lua_pushstring(l81.L,field);
-        if (s != NULL)
-            lua_pushstring(l81.L,s);
-        else
-            lua_pushnumber(l81.L,n);
-        lua_settable(l81.L,-3);
+        lua_pushstring(l81.L,field);    /* Stack: val table field */
+        lua_pushvalue(l81.L,-3);        /* Stack: val table field val */
+        lua_settable(l81.L,-3);         /* Stack: val table */
     }
-    lua_pop(l81.L,1);
+    lua_pop(l81.L,2);                   /* Stack: (empty) */
+}
+
+void setTableFieldNumber(char *name, char *field, lua_Number n) {
+    lua_pushnumber(l81.L,n);
+    setTableField(name,field);
+}
+
+void setTableFieldString(char *name, char *field, char *s) {
+    lua_pushstring(l81.L,s);
+    setTableField(name,field);
 }
 
 /* Set the error string and the error line number. */
@@ -445,7 +336,7 @@ int fillBinding(lua_State *L) {
     l81.r = lua_tonumber(L,-4);
     l81.g = lua_tonumber(L,-3);
     l81.b = lua_tonumber(L,-2);
-    l81.alpha = lua_tonumber(L,-1);
+    l81.alpha = lua_tonumber(L,-1) * 255;
     if (l81.r < 0) l81.r = 0;
     if (l81.r > 255) l81.r = 255;
     if (l81.g < 0) l81.g = 0;
@@ -453,7 +344,7 @@ int fillBinding(lua_State *L) {
     if (l81.b < 0) l81.b = 0;
     if (l81.b > 255) l81.b = 255;
     if (l81.alpha < 0) l81.alpha = 0;
-    if (l81.alpha > 1) l81.alpha = 1;
+    if (l81.alpha > 255) l81.alpha = 255;
     return 0;
 }
 
@@ -513,6 +404,14 @@ int textBinding(lua_State *L) {
     s = lua_tolstring(L,-1,&len);
     if (!s) return 0;
     bfWriteString(l81.fb,x,y,s,len,l81.r,l81.g,l81.b,l81.alpha);
+    return 0;
+}
+
+int setFPSBinding(lua_State *L) {
+    l81.fps = lua_tonumber(L,-1);
+
+    if (l81.fps <= 0) l81.fps = 1;
+    SDL_setFramerate(&l81.fps_mgr,l81.fps);
     return 0;
 }
 
@@ -594,16 +493,16 @@ void updatePressedState(char *object, char *keyname, int pressed) {
 void keyboardEvent(SDL_KeyboardEvent *key, int down) {
     char *keyname = SDL_GetKeyName(key->keysym.sym);
 
-    setTableField("keyboard","state",down ? "down" : "up",0);
-    setTableField("keyboard","key",keyname,0);
+    setTableFieldString("keyboard","state",down ? "down" : "up");
+    setTableFieldString("keyboard","key",keyname);
     updatePressedState("keyboard",keyname,down);
 }
 
 void mouseMovedEvent(int x, int y, int xrel, int yrel) {
-    setTableField("mouse","x",NULL,x);
-    setTableField("mouse","y",NULL,l81.height-1-y);
-    setTableField("mouse","xrel",NULL,xrel);
-    setTableField("mouse","yrel",NULL,-yrel);
+    setTableFieldNumber("mouse","x",x);
+    setTableFieldNumber("mouse","y",l81.height-1-y);
+    setTableFieldNumber("mouse","xrel",xrel);
+    setTableFieldNumber("mouse","yrel",-yrel);
 }
 
 void mouseButtonEvent(int button, int pressed) {
@@ -614,8 +513,8 @@ void mouseButtonEvent(int button, int pressed) {
 }
 
 void resetEvents(void) {
-    setTableField("keyboard","state","none",0);
-    setTableField("keyboard","key","",0);
+    setTableFieldString("keyboard","state","none");
+    setTableFieldString("keyboard","key","");
 }
 
 void showFPS(void) {
@@ -624,8 +523,8 @@ void showFPS(void) {
 
     if (!elapsed_ms) return;
     snprintf(buf,sizeof(buf),"FPS: %.2f",(float)(l81.epoch*1000)/elapsed_ms);
-    drawBox(l81.fb,0,0,100,20,0,0,0,1);
-    bfWriteString(l81.fb,0,0,buf,strlen(buf),128,128,128,1);
+    drawBox(l81.fb,0,0,100,20,0,0,0,255);
+    bfWriteString(l81.fb,0,0,buf,strlen(buf),128,128,128,255);
 }
 
 int processSdlEvents(void) {
@@ -679,6 +578,8 @@ int processSdlEvents(void) {
     /* Refresh the screen */
     if (l81.opt_show_fps) showFPS();
     SDL_Flip(l81.fb->screen);
+    /* Wait some time if the frame was produced in less than 1/FPS seconds. */
+    SDL_framerateDelay(&l81.fps_mgr);
     /* Stop execution on error */
     return l81.luaerr != NULL;
 }
@@ -913,7 +814,7 @@ void editorDrawCursor(void) {
     y -= E.margin_top;
     if (!(E.cblink & 0x80)) drawBox(l81.fb,x+charmargin,y,
                                 x+charmargin+FONT_KERNING-1,y+FONT_HEIGHT-1,
-                                165,165,255,.5);
+                                165,165,255,128);
     E.cblink += 4;
 }
 
@@ -933,57 +834,63 @@ int editorLineType(erow *row, int filerow) {
 void editorDrawChars(void) {
     int y,x;
     erow *r;
+    char buf[32];
 
     for (y = 0; y < E.screenrows; y++) {
-        int filerow = E.rowoff+y;
+        int chary, filerow = E.rowoff+y;
+
         if (filerow >= E.numrows) break;
+        chary = l81.height-((y+1)*FONT_HEIGHT);
+        chary -= E.margin_top;
         r = &E.row[filerow];
+
+        snprintf(buf,sizeof(buf),"%d",filerow%1000);
+        bfWriteString(l81.fb,0,chary,buf,strlen(buf),120,120,120,255);
+
         for (x = 0; x < E.screencols; x++) {
             int idx = x+E.coloff;
-            int charx,chary;
+            int charx;
             int tr,tg,tb;
             int line_type = editorLineType(r,filerow);
 
             if (idx >= r->size) break;
             charx = x*FONT_KERNING;
-            chary = l81.height-((y+1)*FONT_HEIGHT);
             charx += E.margin_left;
-            chary -= E.margin_top;
             switch(line_type) {
             case LINE_TYPE_ERROR: tr = 255; tg = 100, tb = 100; break;
             case LINE_TYPE_COMMENT: tr = 180, tg = 180, tb = 0; break;
             default: tr = 165; tg = 165, tb = 255; break;
             }
-            bfWriteChar(l81.fb,charx,chary,r->chars[idx],tr,tg,tb,1);
+            bfWriteChar(l81.fb,charx,chary,r->chars[idx],tr,tg,tb,255);
         }
     }
     if (l81.luaerr) {
         char *p = strchr(l81.luaerr,':');
         p = p ? p+1 : l81.luaerr;
-        bfWriteString(l81.fb,E.margin_left,10,p,strlen(p),0,0,0,1);
+        bfWriteString(l81.fb,E.margin_left,10,p,strlen(p),0,0,0,255);
     }
 }
 
 void editorDrawPowerOff(int x, int y) {
-    drawEllipse(l81.fb,x,y,12,12,66,66,231,1);
-    drawEllipse(l81.fb,x,y,7,7,165,165,255,1);
-    drawBox(l81.fb,x-4,y,x+4,y+12,165,165,255,1);
-    drawBox(l81.fb,x-2,y,x+2,y+14,66,66,231,1);
+    drawEllipse(l81.fb,x,y,12,12,66,66,231,255);
+    drawEllipse(l81.fb,x,y,7,7,165,165,255,255);
+    drawBox(l81.fb,x-4,y,x+4,y+12,165,165,255,255);
+    drawBox(l81.fb,x-2,y,x+2,y+14,66,66,231,255);
 }
 
 void editorDrawSaveIcon(int x, int y) {
-    drawBox(l81.fb,x-12,y-12,x+12,y+12,66,66,231,1);
-    drawBox(l81.fb,x-1,y+7,x+1,y+11,165,165,255,1);
-    drawEllipse(l81.fb,x,y,4,4,165,165,255,1);
+    drawBox(l81.fb,x-12,y-12,x+12,y+12,66,66,231,255);
+    drawBox(l81.fb,x-1,y+7,x+1,y+11,165,165,255,255);
+    drawEllipse(l81.fb,x,y,4,4,165,165,255,255);
 }
 
 void editorDraw() {
-    drawBox(l81.fb,0,0,l81.width-1,l81.height-1,165,165,255,1);
+    drawBox(l81.fb,0,0,l81.width-1,l81.height-1,165,165,255,255);
     drawBox(l81.fb,
             E.margin_left,
             E.margin_top,
             l81.width-1-E.margin_right,
-            l81.height-1-E.margin_bottom,66,66,231,1);
+            l81.height-1-E.margin_bottom,66,66,231,255);
     editorDrawChars();
     editorDrawCursor();
     /* Show buttons */
@@ -991,7 +898,7 @@ void editorDraw() {
     if (E.dirty) editorDrawSaveIcon(SAVE_BUTTON_X,SAVE_BUTTON_Y);
     /* Show info about the current file */
     bfWriteString(l81.fb,E.margin_left,l81.height-E.margin_top+4,l81.filename,
-        strlen(l81.filename), 255,255,255,1);
+        strlen(l81.filename), 255,255,255,255);
 }
 
 /* ========================= Editor events handling  ======================== */
@@ -1029,6 +936,7 @@ void editorMouseClicked(int x, int y, int button) {
 void editorMoveCursor(int key) {
     int filerow = E.rowoff+E.cy;
     int filecol = E.coloff+E.cx;
+    int rowlen;
     erow *row = (filerow >= E.numrows) ? NULL : &E.row[filerow];
 
     switch(key) {
@@ -1064,6 +972,18 @@ void editorMoveCursor(int key) {
             }
         }
         break;
+    }
+    /* Fix cx if the current line has not enough chars. */
+    filerow = E.rowoff+E.cy;
+    filecol = E.coloff+E.cx;
+    row = (filerow >= E.numrows) ? NULL : &E.row[filerow];
+    rowlen = row ? row->size : 0;
+    if (filecol > rowlen) {
+        E.cx -= filecol-rowlen;
+        if (E.cx < 0) {
+            E.coloff += E.cx;
+            E.cx = 0;
+        }
     }
 }
 
@@ -1163,6 +1083,7 @@ int editorEvents(void) {
     editorDraw();
     /* Refresh the screen */
     SDL_Flip(l81.fb->screen);
+    SDL_framerateDelay(&l81.fps_mgr);
     return 0;
 }
 
@@ -1171,6 +1092,7 @@ int editorEvents(void) {
 void initConfig(void) {
     l81.width = DEFAULT_WIDTH;
     l81.height = DEFAULT_HEIGHT;
+    l81.fps = 30;
     l81.r = 255;
     l81.g = l81.b = 0;
     l81.alpha = 1;
@@ -1242,10 +1164,10 @@ void resetProgram(void) {
 
     /* Make sure that mouse parameters make sense even before the first
      * mouse event captured by SDL */
-    setTableField("mouse","x",NULL,0);
-    setTableField("mouse","y",NULL,0);
-    setTableField("mouse","xrel",NULL,0);
-    setTableField("mouse","yrel",NULL,0);
+    setTableFieldNumber("mouse","x",0);
+    setTableFieldNumber("mouse","y",0);
+    setTableFieldNumber("mouse","xrel",0);
+    setTableFieldNumber("mouse","yrel",0);
 
     /* Register API */
     lua_pushcfunction(l81.L,fillBinding);
@@ -1262,6 +1184,8 @@ void resetProgram(void) {
     lua_setglobal(l81.L,"line");
     lua_pushcfunction(l81.L,textBinding);
     lua_setglobal(l81.L,"text");
+    lua_pushcfunction(l81.L,setFPSBinding);
+    lua_setglobal(l81.L,"setFPS");
 
     lua_pushcfunction(l81.L,spriteBinding);
     lua_setglobal(l81.L,"sprite");
@@ -1273,7 +1197,7 @@ void resetProgram(void) {
     luaL_register(l81.L, NULL, sprite_m);
 
     /* Start with a black screen */
-    drawBox(l81.fb,0,0,l81.width-1,l81.height-1,0,0,0,1);
+    fillBackground(l81.fb,0,0,0);
 }
 
 /* ================================= Main ================================== */
@@ -1332,11 +1256,13 @@ int main(int argc, char **argv) {
         resetProgram();
         loadProgram();
         if (l81.luaerr == NULL) {
+            SDL_setFramerate(&l81.fps_mgr,l81.fps);
             l81.start_ms = mstime();
             while(!processSdlEvents());
             if (E.dirty && editorSave(l81.filename) == 0) E.dirty = 0;
         }
         E.lastevent = time(NULL);
+        SDL_setFramerate(&l81.fps_mgr,EDITOR_FPS);
         while(!editorEvents());
     }
     return 0;
