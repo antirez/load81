@@ -5,6 +5,7 @@ NUM_PLAYERS = 3
 function setup()
     setup_terrain()
     setup_players()
+    setup_bullets()
 end
 
 function setup_terrain()
@@ -48,10 +49,16 @@ function setup_players()
     current_player = players[1]
 end
 
+function setup_bullets()
+    bullets = {}
+end
+
 function draw()
     handle_input()
+    tick_bullets()
     draw_terrain()
     draw_players()
+    draw_bullets()
 end
 
 function handle_input()
@@ -60,6 +67,30 @@ function handle_input()
     end
     if keyboard.pressed['right'] then
         current_player.angle = current_player.angle - 1
+    end
+    if keyboard.pressed['space'] then
+        fire()
+    end
+end
+
+function fire()
+    local player = current_player
+    local a = math.rad(player.angle)
+    local speed = 10
+    local bullet = {
+        player = player,
+        x = player.x,
+        y = player.y,
+        vx = math.cos(a)*speed,
+        vy = math.sin(a)*speed,
+    }
+    table.insert(bullets, bullet)
+end
+
+function tick_bullets()
+    for i, bullet in ipairs(bullets) do
+        bullet.x = bullet.x + bullet.vx
+        bullet.y = bullet.y + bullet.vy
     end
 end
 
@@ -79,5 +110,12 @@ function draw_players()
         line(player.x, player.y+6,
              player.x + l*math.cos(math.rad(player.angle)),
              player.y+6 + l*math.sin(math.rad(player.angle)))
+    end
+end
+
+function draw_bullets()
+    fill(255, 255, 255, 1.0)
+    for i, bullet in ipairs(bullets) do
+        rect(bullet.x, bullet.y, 1, 1)
     end
 end
