@@ -1095,7 +1095,7 @@ void initConfig(void) {
     l81.fps = 30;
     l81.r = 255;
     l81.g = l81.b = 0;
-    l81.alpha = 1;
+    l81.alpha = 255;
     l81.L = NULL;
     l81.luaerr = NULL;
     l81.luaerrline = 0;
