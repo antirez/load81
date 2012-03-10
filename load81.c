@@ -165,7 +165,7 @@ frameBuffer *createFrameBuffer(int width, int height) {
     return fb;
 }
 
-void setPixelWithAlpha(frameBuffer *fb, int x, int y, int r, int g, int b, float alpha) {
+void setPixelWithAlpha(frameBuffer *fb, int x, int y, int r, int g, int b, int alpha) {
     pixelRGBA(fb->screen, x, fb->height-1-y, r, g, b, alpha);
 }
 
@@ -175,23 +175,23 @@ void fillBackground(frameBuffer *fb, int r, int g, int b) {
 
 /* ========================== Drawing primitives ============================ */
 
-void drawHline(frameBuffer *fb, int x1, int x2, int y, int r, int g, int b, float alpha) {
+void drawHline(frameBuffer *fb, int x1, int x2, int y, int r, int g, int b, int alpha) {
     hlineRGBA(fb->screen, x1, x2, fb->height-1-y, r, g, b, alpha);
 }
 
-void drawEllipse(frameBuffer *fb, int xc, int yc, int radx, int rady, int r, int g, int b, float alpha) {
+void drawEllipse(frameBuffer *fb, int xc, int yc, int radx, int rady, int r, int g, int b, int alpha) {
     filledEllipseRGBA(fb->screen, xc, fb->height-1-yc, radx, rady, r, g, b, alpha);
 }
 
-void drawBox(frameBuffer *fb, int x1, int y1, int x2, int y2, int r, int g, int b, float alpha) {
+void drawBox(frameBuffer *fb, int x1, int y1, int x2, int y2, int r, int g, int b, int alpha) {
     boxRGBA(fb->screen, x1, fb->height-1-y1, x2, fb->height-1-y2, r, g, b, alpha);
 }
 
-void drawTriangle(frameBuffer *fb, int x1, int y1, int x2, int y2, int x3, int y3, int r, int g, int b, float alpha) {
+void drawTriangle(frameBuffer *fb, int x1, int y1, int x2, int y2, int x3, int y3, int r, int g, int b, int alpha) {
     filledTrigonRGBA(fb->screen, x1, fb->height-1-y1, x2, fb->height-1-y2, x3, fb->height-1-y3, r, g, b, alpha);
 }
 
-void drawLine(frameBuffer *fb, int x1, int y1, int x2, int y2, int r, int g, int b, float alpha) {
+void drawLine(frameBuffer *fb, int x1, int y1, int x2, int y2, int r, int g, int b, int alpha) {
     lineRGBA(fb->screen, x1, fb->height-1-y1, x2, fb->height-1-y2, r, g, b, alpha);
 }
 
