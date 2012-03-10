@@ -275,6 +275,22 @@ SDL_Surface * loadSprite(const char *filename)
     return *pps;
 }
 
+void blitSprite(const char *filename, int x, int y)
+{
+    SDL_Surface *s;
+
+    s = loadSprite(filename);
+    if (s == NULL)
+    {   
+        luaL_error(l81.L, "failed to load sprite %s", filename);
+        // throw error
+        return;
+    }
+
+    SDL_Rect dst = {x, l81.fb->height-1-y - s->h, s->w, s->h};
+    SDL_BlitSurface(s, NULL, l81.fb->screen, &dst);
+}
+
 /* ========================= Lua helper functions ========================== */
 
 /* Set a Lua global to the specified number. */
@@ -426,34 +442,13 @@ int backgroundBinding(lua_State *L) {
 }
 
 int spriteBinding(lua_State *L) {
-    SDL_Surface *s = NULL;
     const char *filename;
     int x, y;
-    //int i, j;
 
     filename = lua_tostring(L, 1);
     x = lua_tonumber(L, 2);
     y = lua_tonumber(L, 3);
-
-    s = loadSprite(filename);
-    if (s == NULL) return 0;
-
-    SDL_Rect dst = {x, y, 32, 32};
-
-    SDL_BlitSurface(s, NULL, l81.fb->screen, &dst);
-
-#if 0
-    for (j = 0 ; j < s->h ; j++)
-    {
-        for (i = 0 ; i < s->w ; i++)
-        {
-            /* todo handle alpha */
-            const char *p = s->pixels + s->pitch*j + 3*i;
-            setPixelWithAlpha(l81.fb, x+i, y+s->h-j, p[0], p[1], p[2], l81.alpha);
-        }
-    }
-#endif
-
+    blitSprite(filename, x, y);
     return 0;
 }
 
