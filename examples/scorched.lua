@@ -5,6 +5,7 @@
 
 NUM_PLAYERS = 3
 G = 0.1
+MAX_POWER = 300
 
 function setup()
     ticks = 0
@@ -42,6 +43,7 @@ function setup_players()
         player.x = math.random(10, WIDTH-10)
         player.y = terrain[player.x]
         player.angle = 90
+        player.power = 100
         player.r = 255
         player.g = 0
         player.b = 0
@@ -85,6 +87,12 @@ function handle_input()
     if keyboard.pressed['right'] then
         current_player.angle = current_player.angle - 1
     end
+    if keyboard.pressed['up'] and current_player.power < MAX_POWER then
+        current_player.power = current_player.power + 1
+    end
+    if keyboard.pressed['down'] and current_player.power > 0 then
+        current_player.power = current_player.power - 1
+    end
     if keyboard.pressed['space'] and
        last_fire_tick < ticks - 16 then
         fire()
@@ -97,7 +105,7 @@ local next_bullet_id = 1
 function fire()
     local player = current_player
     local a = math.rad(player.angle)
-    local speed = 10
+    local speed = player.power/10
     local bullet = {
         player = player,
         x = player.x,
@@ -166,7 +174,7 @@ function draw_status()
         else
             fill(255, 255, 255, 0.5)
         end
-        local str = string.format("player %d: angle %d", i, player.angle)
+        local str = string.format("player %d: angle %d; power %d", i, player.angle, player.power)
         text(x, HEIGHT-18, str)
         x = x + str:len()*10 + padding
         line(x-padding/2, HEIGHT-1, x-padding/2, HEIGHT-h)
