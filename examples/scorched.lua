@@ -1,6 +1,7 @@
 -- Basic Scorched Earth clone
 
 NUM_PLAYERS = 3
+G = 0.1
 
 function setup()
     setup_terrain()
@@ -91,6 +92,7 @@ function tick_bullets()
     for i, bullet in ipairs(bullets) do
         bullet.x = bullet.x + bullet.vx
         bullet.y = bullet.y + bullet.vy
+        bullet.vy = bullet.vy - G
     end
 end
 
