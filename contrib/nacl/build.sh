@@ -17,6 +17,7 @@ do
     export PKG_CONFIG_PATH=$TOOLCHAIN/$HOST/usr/lib/pkgconfig
     export CC=$HOST-gcc
     $CC -O2 -Wall -W $ROOT/load81.c $NACL_ROOT/nacl.cc `pkg-config --cflags sdl` `pkg-config --libs sdl` -llua -lm -lppapi -lppapi_cpp -lstdc++ -lcrt_common -lnosys -o $NACL_ROOT/load81-$HOST.nexe
+    $HOST-strip $NACL_ROOT/load81-$HOST.nexe
 done
 
 echo Built successfully
