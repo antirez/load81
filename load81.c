@@ -50,6 +50,8 @@
 #define SAVE_BUTTON_X       (l81.width-E.margin_right-13)
 #define SAVE_BUTTON_Y       (l81.height-16)
 
+#define EDITOR_FPS 30
+
 /* ============================== Portable sleep ============================ */
 
 #ifdef WIN32
@@ -72,12 +74,12 @@ struct globalConfig {
     /* Runtime */
     int width;
     int height;
-    int fps;
     int r,g,b;
     int alpha;
+    int fps;
     long long start_ms;
     long long epoch;
-    FPSmanager fpsMgr;
+    FPSmanager fps_mgr;
     frameBuffer *fb;
     lua_State *L;
     unsigned char *font[256];
@@ -152,7 +154,7 @@ SDL_Surface *sdlInit(int width, int height, int fullscreen) {
      * keys are translated into characters with automatic support for modifiers
      * (for instance shift modifier to print capital letters and symbols). */
     SDL_EnableUNICODE(SDL_ENABLE);
-    SDL_initFramerate(&l81.fpsMgr);
+    SDL_initFramerate(&l81.fps_mgr);
     return screen;
 }
 
@@ -245,28 +247,33 @@ lua_Number getNumber(char *name) {
     return n;
 }
 
-/* Set a Lua global table field to the specified value.
- * If s == NULL the field is set to the specified number 'n',
- * otherwise it is set to the specified string 's'. */
-void setTableField(char *name, char *field, char *s, lua_Number n) {
-    lua_getglobal(l81.L,name);
+/* Set a Lua global table field to the value on the top of the Lua stack. */
+void setTableField(char *name, char *field) {
+    lua_getglobal(l81.L,name);          /* Stack: val table */
     /* Create the table if needed */
     if (lua_isnil(l81.L,-1)) {
-        lua_pop(l81.L,1);
-        lua_newtable(l81.L);
-        lua_setglobal(l81.L,name);
-        lua_getglobal(l81.L,name);
+        lua_pop(l81.L,1);               /* Stack: val */
+        lua_newtable(l81.L);            /* Stack: val table */
+        lua_setglobal(l81.L,name);      /* Stack: val */
+        lua_getglobal(l81.L,name);      /* Stack: val table */
     }
     /* Set the field */
     if (lua_istable(l81.L,-1)) {
-        lua_pushstring(l81.L,field);
-        if (s != NULL)
-            lua_pushstring(l81.L,s);
-        else
-            lua_pushnumber(l81.L,n);
-        lua_settable(l81.L,-3);
+        lua_pushstring(l81.L,field);    /* Stack: val table field */
+        lua_pushvalue(l81.L,-3);        /* Stack: val table field val */
+        lua_settable(l81.L,-3);         /* Stack: val table */
     }
-    lua_pop(l81.L,1);
+    lua_pop(l81.L,2);                   /* Stack: (empty) */
+}
+
+void setTableFieldNumber(char *name, char *field, lua_Number n) {
+    lua_pushnumber(l81.L,n);
+    setTableField(name,field);
+}
+
+void setTableFieldString(char *name, char *field, char *s) {
+    lua_pushstring(l81.L,s);
+    setTableField(name,field);
 }
 
 /* Set the error string and the error line number. */
@@ -354,6 +361,14 @@ int textBinding(lua_State *L) {
     return 0;
 }
 
+int setFPSBinding(lua_State *L) {
+    l81.fps = lua_tonumber(L,-1);
+
+    if (l81.fps <= 0) l81.fps = 1;
+    SDL_setFramerate(&l81.fps_mgr,l81.fps);
+    return 0;
+}
+
 int backgroundBinding(lua_State *L) {
     int r,g,b;
 
@@ -406,16 +421,16 @@ void updatePressedState(char *object, char *keyname, int pressed) {
 void keyboardEvent(SDL_KeyboardEvent *key, int down) {
     char *keyname = SDL_GetKeyName(key->keysym.sym);
 
-    setTableField("keyboard","state",down ? "down" : "up",0);
-    setTableField("keyboard","key",keyname,0);
+    setTableFieldString("keyboard","state",down ? "down" : "up");
+    setTableFieldString("keyboard","key",keyname);
     updatePressedState("keyboard",keyname,down);
 }
 
 void mouseMovedEvent(int x, int y, int xrel, int yrel) {
-    setTableField("mouse","x",NULL,x);
-    setTableField("mouse","y",NULL,l81.height-1-y);
-    setTableField("mouse","xrel",NULL,xrel);
-    setTableField("mouse","yrel",NULL,-yrel);
+    setTableFieldNumber("mouse","x",x);
+    setTableFieldNumber("mouse","y",l81.height-1-y);
+    setTableFieldNumber("mouse","xrel",xrel);
+    setTableFieldNumber("mouse","yrel",-yrel);
 }
 
 void mouseButtonEvent(int button, int pressed) {
@@ -426,8 +441,8 @@ void mouseButtonEvent(int button, int pressed) {
 }
 
 void resetEvents(void) {
-    setTableField("keyboard","state","none",0);
-    setTableField("keyboard","key","",0);
+    setTableFieldString("keyboard","state","none");
+    setTableFieldString("keyboard","key","");
 }
 
 void showFPS(void) {
@@ -492,7 +507,7 @@ int processSdlEvents(void) {
     if (l81.opt_show_fps) showFPS();
     SDL_Flip(l81.fb->screen);
     /* Wait some time if the frame was produced in less than 1/FPS seconds. */
-    SDL_framerateDelay(&l81.fpsMgr);
+    SDL_framerateDelay(&l81.fps_mgr);
     /* Stop execution on error */
     return l81.luaerr != NULL;
 }
@@ -977,7 +992,7 @@ int editorEvents(void) {
     editorDraw();
     /* Refresh the screen */
     SDL_Flip(l81.fb->screen);
-    SDL_framerateDelay(&l81.fpsMgr);
+    SDL_framerateDelay(&l81.fps_mgr);
     return 0;
 }
 
@@ -1058,10 +1073,10 @@ void resetProgram(void) {
 
     /* Make sure that mouse parameters make sense even before the first
      * mouse event captured by SDL */
-    setTableField("mouse","x",NULL,0);
-    setTableField("mouse","y",NULL,0);
-    setTableField("mouse","xrel",NULL,0);
-    setTableField("mouse","yrel",NULL,0);
+    setTableFieldNumber("mouse","x",0);
+    setTableFieldNumber("mouse","y",0);
+    setTableFieldNumber("mouse","xrel",0);
+    setTableFieldNumber("mouse","yrel",0);
 
     /* Register API */
     lua_pushcfunction(l81.L,fillBinding);
@@ -1078,6 +1093,8 @@ void resetProgram(void) {
     lua_setglobal(l81.L,"line");
     lua_pushcfunction(l81.L,textBinding);
     lua_setglobal(l81.L,"text");
+    lua_pushcfunction(l81.L,setFPSBinding);
+    lua_setglobal(l81.L,"setFPS");
 
     /* Start with a black screen */
     fillBackground(l81.fb,0,0,0);
@@ -1139,11 +1156,13 @@ int main(int argc, char **argv) {
         resetProgram();
         loadProgram();
         if (l81.luaerr == NULL) {
+            SDL_setFramerate(&l81.fps_mgr,l81.fps);
             l81.start_ms = mstime();
             while(!processSdlEvents());
             if (E.dirty && editorSave(l81.filename) == 0) E.dirty = 0;
         }
         E.lastevent = time(NULL);
+        SDL_setFramerate(&l81.fps_mgr,EDITOR_FPS);
         while(!editorEvents());
     }
     return 0;

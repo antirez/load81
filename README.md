@@ -59,6 +59,10 @@ Not available in Codea:
 
 * triangle(x1,y1,x2,y2,x3,y3): draw a triangle with the specified vertex.
 
+Other functions:
+
+* setFPS(fps): Set the frame rate. For default it's set to 30 frames per second.
+
 KEYBOARD EVENTS
 ===
 
