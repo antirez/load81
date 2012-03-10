@@ -72,7 +72,7 @@ struct globalConfig {
     int height;
     int fps;
     int r,g,b;
-    float alpha;
+    int alpha;
     long long start_ms;
     long long epoch;
     frameBuffer *fb;
@@ -172,13 +172,13 @@ void setPixelWithAlpha(frameBuffer *fb, int x, int y, int r, int g, int b, float
     p = l81.fb->screen->pixels+y*l81.fb->screen->pitch+(x*3);
 
 #if SDL_BYTEORDER == SDL_LIL_ENDIAN
-    p[0] = (alpha*b)+((1-alpha)*p[0]);
-    p[1] = (alpha*g)+((1-alpha)*p[1]);
-    p[2] = (alpha*r)+((1-alpha)*p[2]);
+    p[0] = (b*alpha/255)+(p[0]*(255-alpha)/255);
+    p[1] = (g*alpha/255)+(p[1]*(255-alpha)/255);
+    p[2] = (r*alpha/255)+(p[2]*(255-alpha)/255);
 #else
-    p[0] = (alpha*r)+((1-alpha)*p[0]);
-    p[1] = (alpha*g)+((1-alpha)*p[1]);
-    p[2] = (alpha*b)+((1-alpha)*p[2]);
+    p[0] = (r*alpha/255)+(p[0]*(255-alpha)/255);
+    p[1] = (g*alpha/255)+(p[1]*(255-alpha)/255);
+    p[2] = (b*alpha/255)+(p[2]*(255-alpha)/255);
 #endif
 }
 
@@ -203,7 +203,7 @@ void fillBackground(frameBuffer *fb, int r, int g, int b) {
     }
 }
 
-void drawHline(frameBuffer *fb, int x1, int x2, int y, int r, int g, int b, float alpha) {
+void drawHline(frameBuffer *fb, int x1, int x2, int y, int r, int g, int b, int alpha) {
     int aux, x;
 
     if (x1 > x2) {
@@ -215,7 +215,7 @@ void drawHline(frameBuffer *fb, int x1, int x2, int y, int r, int g, int b, floa
         setPixelWithAlpha(fb,x,y,r,g,b,alpha);
 }
 
-void drawEllipse(frameBuffer *fb, int xc, int yc, int radx, int rady, int r, int g, int b, float alpha) {
+void drawEllipse(frameBuffer *fb, int xc, int yc, int radx, int rady, int r, int g, int b, int alpha) {
     int x1, x2, y;
     float xshift;
 
@@ -227,7 +227,7 @@ void drawEllipse(frameBuffer *fb, int xc, int yc, int radx, int rady, int r, int
     }
 }
 
-void drawBox(frameBuffer *fb, int x1, int y1, int x2, int y2, int r, int g, int b, float alpha) {
+void drawBox(frameBuffer *fb, int x1, int y1, int x2, int y2, int r, int g, int b, int alpha) {
     int x, y;
 
     for (x = x1; x <= x2; x++ ) {
@@ -237,7 +237,7 @@ void drawBox(frameBuffer *fb, int x1, int y1, int x2, int y2, int r, int g, int 
     }
 }
 
-void drawTriangle(frameBuffer *fb, int x1, int y1, int x2, int y2, int x3, int y3, int r, int g, int b, float alpha) {
+void drawTriangle(frameBuffer *fb, int x1, int y1, int x2, int y2, int x3, int y3, int r, int g, int b, int alpha) {
     int swap, t;
     struct {
         float x, y;
@@ -290,7 +290,7 @@ void drawTriangle(frameBuffer *fb, int x1, int y1, int x2, int y2, int x3, int y
 
 
 /* Bresenham algorithm */
-void drawLine(frameBuffer *fb, int x1, int y1, int x2, int y2, int r, int g, int b, float alpha) {
+void drawLine(frameBuffer *fb, int x1, int y1, int x2, int y2, int r, int g, int b, int alpha) {
     int dx = abs(x2-x1);
     int dy = abs(y2-y1);
     int sx = (x1 < x2) ? 1 : -1;
@@ -320,7 +320,7 @@ void bfLoadFont(char **c) {
     #include "bitfont.h"
 }
 
-void bfWriteChar(frameBuffer *fb, int xp, int yp, int c, int r, int g, int b, float alpha) {
+void bfWriteChar(frameBuffer *fb, int xp, int yp, int c, int r, int g, int b, int alpha) {
     int x,y;
     unsigned char *bitmap = l81.font[c&0xff];
 
@@ -336,7 +336,7 @@ void bfWriteChar(frameBuffer *fb, int xp, int yp, int c, int r, int g, int b, fl
     }
 }
 
-void bfWriteString(frameBuffer *fb, int xp, int yp, const char *s, int len, int r, int g, int b, float alpha) {
+void bfWriteString(frameBuffer *fb, int xp, int yp, const char *s, int len, int r, int g, int b, int alpha) {
     int i;
 
     for (i = 0; i < len; i++)
@@ -400,7 +400,7 @@ int fillBinding(lua_State *L) {
     l81.r = lua_tonumber(L,-4);
     l81.g = lua_tonumber(L,-3);
     l81.b = lua_tonumber(L,-2);
-    l81.alpha = lua_tonumber(L,-1);
+    l81.alpha = lua_tonumber(L,-1) * 255;
     if (l81.r < 0) l81.r = 0;
     if (l81.r > 255) l81.r = 255;
     if (l81.g < 0) l81.g = 0;
@@ -408,7 +408,7 @@ int fillBinding(lua_State *L) {
     if (l81.b < 0) l81.b = 0;
     if (l81.b > 255) l81.b = 255;
     if (l81.alpha < 0) l81.alpha = 0;
-    if (l81.alpha > 1) l81.alpha = 1;
+    if (l81.alpha > 255) l81.alpha = 255;
     return 0;
 }
 
@@ -553,8 +553,8 @@ void showFPS(void) {
 
     if (!elapsed_ms) return;
     snprintf(buf,sizeof(buf),"FPS: %.2f",(float)(l81.epoch*1000)/elapsed_ms);
-    drawBox(l81.fb,0,0,100,20,0,0,0,1);
-    bfWriteString(l81.fb,0,0,buf,strlen(buf),128,128,128,1);
+    drawBox(l81.fb,0,0,100,20,0,0,0,255);
+    bfWriteString(l81.fb,0,0,buf,strlen(buf),128,128,128,255);
 }
 
 int processSdlEvents(void) {
@@ -847,7 +847,7 @@ void editorDrawCursor(void) {
     y -= E.margin_top;
     if (!(E.cblink & 0x80)) drawBox(l81.fb,x+charmargin,y,
                                 x+charmargin+FONT_KERNING-1,y+FONT_HEIGHT-1,
-                                165,165,255,.5);
+                                165,165,255,128);
     E.cblink += 4;
 }
 
@@ -888,36 +888,36 @@ void editorDrawChars(void) {
             case LINE_TYPE_COMMENT: tr = 180, tg = 180, tb = 0; break;
             default: tr = 165; tg = 165, tb = 255; break;
             }
-            bfWriteChar(l81.fb,charx,chary,r->chars[idx],tr,tg,tb,1);
+            bfWriteChar(l81.fb,charx,chary,r->chars[idx],tr,tg,tb,255);
         }
     }
     if (l81.luaerr) {
         char *p = strchr(l81.luaerr,':');
         p = p ? p+1 : l81.luaerr;
-        bfWriteString(l81.fb,E.margin_left,10,p,strlen(p),0,0,0,1);
+        bfWriteString(l81.fb,E.margin_left,10,p,strlen(p),0,0,0,255);
     }
 }
 
 void editorDrawPowerOff(int x, int y) {
-    drawEllipse(l81.fb,x,y,12,12,66,66,231,1);
-    drawEllipse(l81.fb,x,y,7,7,165,165,255,1);
-    drawBox(l81.fb,x-4,y,x+4,y+12,165,165,255,1);
-    drawBox(l81.fb,x-2,y,x+2,y+14,66,66,231,1);
+    drawEllipse(l81.fb,x,y,12,12,66,66,231,255);
+    drawEllipse(l81.fb,x,y,7,7,165,165,255,255);
+    drawBox(l81.fb,x-4,y,x+4,y+12,165,165,255,255);
+    drawBox(l81.fb,x-2,y,x+2,y+14,66,66,231,255);
 }
 
 void editorDrawSaveIcon(int x, int y) {
-    drawBox(l81.fb,x-12,y-12,x+12,y+12,66,66,231,1);
-    drawBox(l81.fb,x-1,y+7,x+1,y+11,165,165,255,1);
-    drawEllipse(l81.fb,x,y,4,4,165,165,255,1);
+    drawBox(l81.fb,x-12,y-12,x+12,y+12,66,66,231,255);
+    drawBox(l81.fb,x-1,y+7,x+1,y+11,165,165,255,255);
+    drawEllipse(l81.fb,x,y,4,4,165,165,255,255);
 }
 
 void editorDraw() {
-    drawBox(l81.fb,0,0,l81.width-1,l81.height-1,165,165,255,1);
+    drawBox(l81.fb,0,0,l81.width-1,l81.height-1,165,165,255,255);
     drawBox(l81.fb,
             E.margin_left,
             E.margin_top,
             l81.width-1-E.margin_right,
-            l81.height-1-E.margin_bottom,66,66,231,1);
+            l81.height-1-E.margin_bottom,66,66,231,255);
     editorDrawChars();
     editorDrawCursor();
     /* Show buttons */
@@ -925,7 +925,7 @@ void editorDraw() {
     if (E.dirty) editorDrawSaveIcon(SAVE_BUTTON_X,SAVE_BUTTON_Y);
     /* Show info about the current file */
     bfWriteString(l81.fb,E.margin_left,l81.height-E.margin_top+4,l81.filename,
-        strlen(l81.filename), 255,255,255,1);
+        strlen(l81.filename), 255,255,255,255);
 }
 
 /* ========================= Editor events handling  ======================== */
@@ -1199,7 +1199,7 @@ void resetProgram(void) {
     lua_setglobal(l81.L,"text");
 
     /* Start with a black screen */
-    drawBox(l81.fb,0,0,l81.width-1,l81.height-1,0,0,0,1);
+    fillBackground(l81.fb,0,0,0);
 }
 
 /* ================================= Main ================================== */
