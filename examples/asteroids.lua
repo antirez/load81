@@ -61,7 +61,7 @@ function addAsteroid()
             break
         end
     end
-    a = { x = x, y = y, vx = math.random(), vy = math.random(),
+    a = { x = x, y = y, vx = math.random()*2, vy = math.random()*2,
           ray = ray }
     table.insert(asteroids,a)
     asteroids_num = asteroids_num + 1
@@ -76,8 +76,8 @@ function fire()
     -- less than 5 iterations ago.
     if ticks - last_bullet_ticks < 5 then return end
     b = { x = shipx, y = shipy,
-          vx = shipvx+(2*math.sin(shipa)),
-          vy = shipvy+(2*math.cos(shipa)),
+          vx = shipvx+(4*math.sin(shipa)),
+          vy = shipvy+(4*math.cos(shipa)),
           ttl=300 }
     -- Make sure that the bullet originaes from ship head
     b.x = b.x+(20*math.sin(shipa))
@@ -92,16 +92,16 @@ function draw()
     ticks = ticks+1
 
     -- Handle keyboard events.
-    if keyboard.pressed['left'] then shipa = shipa - 0.05 end
-    if keyboard.pressed['right'] then shipa = shipa + 0.05 end
+    if keyboard.pressed['left'] then shipa = shipa - 0.1 end
+    if keyboard.pressed['right'] then shipa = shipa + 0.1 end
     if keyboard.pressed['up'] then
-        shipvx = shipvx + 0.05*math.sin(shipa)
-        shipvy = shipvy + 0.05*math.cos(shipa)
+        shipvx = shipvx + 0.15*math.sin(shipa)
+        shipvy = shipvy + 0.15*math.cos(shipa)
     end
     if keyboard.pressed['space'] then fire() end
 
     -- Create a new asteroid from time to time if needed
-    if asteroids_num < asteroids_max and (ticks % 500) == 0 then
+    if asteroids_num < asteroids_max and (ticks % 200) == 0 then
         while(asteroids_num < asteroids_max) do addAsteroid() end
     end
 
