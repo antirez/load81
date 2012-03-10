@@ -1,4 +1,5 @@
 #!/bin/sh
+# TODO use the common Makfile instead of duplicating it.
 set -ex
 
 if [ -z $NACL_SDK_ROOT ]
@@ -11,6 +12,7 @@ fi
 TOOLCHAIN=$NACL_SDK_ROOT/toolchain/linux_x86_newlib
 NACL_ROOT=$(dirname $(which $0))
 ROOT=$(readlink -f $NACL_ROOT/../..)
+PKGS="sdl SDL_gfx"
 
 for HOST in i686-nacl x86_64-nacl
 do
@@ -23,7 +25,7 @@ do
         BFDNAME=elf64-nacl
     fi
     (cd $ROOT && $HOST-objcopy -I binary -O $BFDNAME -B $BFDARCH examples/asteroids.lua $NACL_ROOT/example.o)
-    $CC -O2 -Wall -W $ROOT/load81.c $NACL_ROOT/example.o $NACL_ROOT/nacl.cc `pkg-config --cflags sdl` `pkg-config --libs sdl` -llua -lm -lppapi -lppapi_cpp -lstdc++ -lcrt_common -lnosys -o $NACL_ROOT/load81-$HOST.nexe
+    $CC -O2 -Wall -W $ROOT/load81.c $NACL_ROOT/example.o $NACL_ROOT/nacl.cc `pkg-config --cflags $PKGS` `pkg-config --libs $PKGS` -llua -lm -lppapi -lppapi_cpp -lstdc++ -lcrt_common -lnosys -o $NACL_ROOT/load81-$HOST.nexe
     $HOST-strip $NACL_ROOT/load81-$HOST.nexe
 done
 
