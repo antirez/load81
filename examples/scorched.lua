@@ -6,6 +6,7 @@
 NUM_PLAYERS = 3
 G = 0.1
 MAX_POWER = 300
+STATUS_HEIGHT = 20
 
 function setup()
     ticks = 0
@@ -165,18 +166,25 @@ function draw_players()
 end
 
 function draw_bullets()
-    fill(255, 255, 255, 1.0)
     for i, bullet in pairs(bullets) do
-        rect(bullet.x, bullet.y, 1, 1)
+        local maxy = HEIGHT-STATUS_HEIGHT
+        if (bullet.y < maxy) then
+            fill(255, 255, 255, 1.0)
+            rect(bullet.x, bullet.y, 1, 1)
+        else
+            fill(200, 200, 200, 1.0)
+            local l = 5
+            line(bullet.x-l, maxy-l, bullet.x, maxy)
+            line(bullet.x+l, maxy-l, bullet.x, maxy)
+        end
     end
 end
 
 function draw_status()
-    local h = 20
     fill(0, 0, 0, 1)
-    rect(0, HEIGHT-h, WIDTH-1, HEIGHT)
+    rect(0, HEIGHT-STATUS_HEIGHT, WIDTH-1, HEIGHT)
     fill(150, 150, 150, 1)
-    line(0, HEIGHT-h-1, WIDTH-1, HEIGHT-h-1)
+    line(0, HEIGHT-STATUS_HEIGHT-1, WIDTH-1, HEIGHT-STATUS_HEIGHT-1)
     local x = 5
     local padding = 40
     for i, player in ipairs(players) do
@@ -188,6 +196,6 @@ function draw_status()
         local str = string.format("player %d: angle %d; power %d", i, player.angle, player.power)
         text(x, HEIGHT-18, str)
         x = x + str:len()*10 + padding
-        line(x-padding/2, HEIGHT-1, x-padding/2, HEIGHT-h)
+        line(x-padding/2, HEIGHT-1, x-padding/2, HEIGHT-STATUS_HEIGHT)
     end
 end
