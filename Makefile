@@ -4,7 +4,7 @@ LDLIBS=-lm lua/src/liblua.a `pkg-config --libs $(PKGS)`
 
 all: load81 
 
-load81.o: bitfont.h
+load81.o: bitfont.h lua/src/liblua.a
 
 lua/src/liblua.a:
 	-(cd lua && $(MAKE) ansi)

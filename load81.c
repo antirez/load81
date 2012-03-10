@@ -245,28 +245,33 @@ lua_Number getNumber(char *name) {
     return n;
 }
 
-/* Set a Lua global table field to the specified value.
- * If s == NULL the field is set to the specified number 'n',
- * otherwise it is set to the specified string 's'. */
-void setTableField(char *name, char *field, char *s, lua_Number n) {
-    lua_getglobal(l81.L,name);
+/* Set a Lua global table field to the value on the top of the Lua stack. */
+void setTableField(char *name, char *field) {
+    lua_getglobal(l81.L,name);          /* Stack: val table */
     /* Create the table if needed */
     if (lua_isnil(l81.L,-1)) {
-        lua_pop(l81.L,1);
-        lua_newtable(l81.L);
-        lua_setglobal(l81.L,name);
-        lua_getglobal(l81.L,name);
+        lua_pop(l81.L,1);               /* Stack: val */
+        lua_newtable(l81.L);            /* Stack: val table */
+        lua_setglobal(l81.L,name);      /* Stack: val */
+        lua_getglobal(l81.L,name);      /* Stack: val table */
     }
     /* Set the field */
     if (lua_istable(l81.L,-1)) {
-        lua_pushstring(l81.L,field);
-        if (s != NULL)
-            lua_pushstring(l81.L,s);
-        else
-            lua_pushnumber(l81.L,n);
-        lua_settable(l81.L,-3);
+        lua_pushstring(l81.L,field);    /* Stack: val table field */
+        lua_pushvalue(l81.L,-3);        /* Stack: val table field val */
+        lua_settable(l81.L,-3);         /* Stack: val table */
     }
-    lua_pop(l81.L,1);
+    lua_pop(l81.L,2);                   /* Stack: (empty) */
+}
+
+void setTableFieldNumber(char *name, char *field, lua_Number n) {
+    lua_pushnumber(l81.L,n);
+    setTableField(name,field);
+}
+
+void setTableFieldString(char *name, char *field, char *s) {
+    lua_pushstring(l81.L,s);
+    setTableField(name,field);
 }
 
 /* Set the error string and the error line number. */
@@ -406,16 +411,16 @@ void updatePressedState(char *object, char *keyname, int pressed) {
 void keyboardEvent(SDL_KeyboardEvent *key, int down) {
     char *keyname = SDL_GetKeyName(key->keysym.sym);
 
-    setTableField("keyboard","state",down ? "down" : "up",0);
-    setTableField("keyboard","key",keyname,0);
+    setTableFieldString("keyboard","state",down ? "down" : "up");
+    setTableFieldString("keyboard","key",keyname);
     updatePressedState("keyboard",keyname,down);
 }
 
 void mouseMovedEvent(int x, int y, int xrel, int yrel) {
-    setTableField("mouse","x",NULL,x);
-    setTableField("mouse","y",NULL,l81.height-1-y);
-    setTableField("mouse","xrel",NULL,xrel);
-    setTableField("mouse","yrel",NULL,-yrel);
+    setTableFieldNumber("mouse","x",x);
+    setTableFieldNumber("mouse","y",l81.height-1-y);
+    setTableFieldNumber("mouse","xrel",xrel);
+    setTableFieldNumber("mouse","yrel",-yrel);
 }
 
 void mouseButtonEvent(int button, int pressed) {
@@ -426,8 +431,8 @@ void mouseButtonEvent(int button, int pressed) {
 }
 
 void resetEvents(void) {
-    setTableField("keyboard","state","none",0);
-    setTableField("keyboard","key","",0);
+    setTableFieldString("keyboard","state","none");
+    setTableFieldString("keyboard","key","");
 }
 
 void showFPS(void) {
@@ -1058,10 +1063,10 @@ void resetProgram(void) {
 
     /* Make sure that mouse parameters make sense even before the first
      * mouse event captured by SDL */
-    setTableField("mouse","x",NULL,0);
-    setTableField("mouse","y",NULL,0);
-    setTableField("mouse","xrel",NULL,0);
-    setTableField("mouse","yrel",NULL,0);
+    setTableFieldNumber("mouse","x",0);
+    setTableFieldNumber("mouse","y",0);
+    setTableFieldNumber("mouse","xrel",0);
+    setTableFieldNumber("mouse","yrel",0);
 
     /* Register API */
     lua_pushcfunction(l81.L,fillBinding);
