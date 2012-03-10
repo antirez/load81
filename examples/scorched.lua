@@ -9,19 +9,22 @@ end
 
 function setup_terrain()
     terrain = {}
-    local periods = {}
+    local freqs = {}
     local amplitudes = {}
-    local nwaves = 10
+    local offsets = {}
+    local nwaves = 100
+    local max_amplitude = 30
     for i = 1, nwaves do
-        periods[i] = math.random()*0.1 + 0.01
-        amplitudes[i] = math.random() * 50
+        freqs[i] = math.random()*0.1 + 0.01
+        amplitudes[i] = math.random() * (max_amplitude*(i/nwaves))
+        offsets[i] = math.random()*WIDTH
     end
-    for i = 0, WIDTH-1 do
-        local h = 200
-        for j = 1, nwaves do
-            h = h + math.sin(i*periods[j])*amplitudes[j]
+    for x = 0, WIDTH-1 do
+        local h = HEIGHT/3
+        for i = 1, nwaves do
+            h = h + math.sin(x*freqs[i] + offsets[i])*amplitudes[i]
         end
-        terrain[i] = h
+        terrain[x] = h
     end
 end
 
