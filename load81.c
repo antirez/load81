@@ -129,7 +129,21 @@ long long mstime(void) {
     return ustime()/1000;
 }
 
-/* ============================= Frame buffer ============================== */
+/* ============================= Frame buffer ==============================
+ * SDL implementation of Load81 frame buffer.
+ *
+ * Load81 is designed to be very portable, all you need to do in order to
+ * port it to something different than SDL is to write the following
+ * three functions:
+ *
+ * - createFrameBuffer(), creates a framebuffer.
+ * - setPixelWithAlpha(), draws a pixel at x,y with color RGB, and alpha.
+ * - fillBackground(), fills the whole screen with the specified RDB color.
+ *
+ * All the other graphic primitives will use this base primitives, so the
+ * only other part that needs to be ported is the one dealing with
+ * mouse and keyboard events.
+ */
 
 SDL_Surface *sdlInit(int width, int height, int fullscreen) {
     int flags = SDL_SWSURFACE;
@@ -161,8 +175,6 @@ frameBuffer *createFrameBuffer(int width, int height) {
     fb->screen = sdlInit(width,height,0);
     return fb;
 }
-
-/* ========================== Drawing primitives ============================ */
 
 void setPixelWithAlpha(frameBuffer *fb, int x, int y, int r, int g, int b, float alpha) {
     unsigned char *p;
@@ -202,6 +214,8 @@ void fillBackground(frameBuffer *fb, int r, int g, int b) {
         }
     }
 }
+
+/* ========================== Drawing primitives ============================ */
 
 void drawHline(frameBuffer *fb, int x1, int x2, int y, int r, int g, int b, int alpha) {
     int aux, x;
