@@ -7,6 +7,8 @@ NUM_PLAYERS = 3
 G = 0.1
 
 function setup()
+    ticks = 0
+    last_fire_tick = 0
     setup_terrain()
     setup_players()
     setup_bullets()
@@ -50,7 +52,16 @@ function setup_players()
         end
         players[i] = player
     end
-    current_player = players[1]
+    current_player_index = nil
+    next_player()
+end
+
+function next_player()
+    current_player_index = next(players, current_player_index)
+    if current_player_index == nil then
+        current_player_index = next(players)
+    end
+    current_player = players[current_player_index]
 end
 
 function setup_bullets()
@@ -58,6 +69,7 @@ function setup_bullets()
 end
 
 function draw()
+    ticks = ticks + 1
     handle_input()
     tick_bullets()
     draw_terrain()
@@ -72,8 +84,11 @@ function handle_input()
     if keyboard.pressed['right'] then
         current_player.angle = current_player.angle - 1
     end
-    if keyboard.pressed['space'] then
+    if keyboard.pressed['space'] and
+       last_fire_tick < ticks - 16 then
         fire()
+        last_fire_tick = ticks
+        next_player()
     end
 end
 
