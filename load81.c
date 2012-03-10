@@ -50,6 +50,8 @@
 #define SAVE_BUTTON_X       (l81.width-E.margin_right-13)
 #define SAVE_BUTTON_Y       (l81.height-16)
 
+#define EDITOR_FPS 30
+
 /* ============================== Portable sleep ============================ */
 
 #ifdef WIN32
@@ -72,12 +74,12 @@ struct globalConfig {
     /* Runtime */
     int width;
     int height;
-    int fps;
     int r,g,b;
     int alpha;
+    int fps;
     long long start_ms;
     long long epoch;
-    FPSmanager fpsMgr;
+    FPSmanager fps_mgr;
     frameBuffer *fb;
     lua_State *L;
     unsigned char *font[256];
@@ -152,7 +154,7 @@ SDL_Surface *sdlInit(int width, int height, int fullscreen) {
      * keys are translated into characters with automatic support for modifiers
      * (for instance shift modifier to print capital letters and symbols). */
     SDL_EnableUNICODE(SDL_ENABLE);
-    SDL_initFramerate(&l81.fpsMgr);
+    SDL_initFramerate(&l81.fps_mgr);
     return screen;
 }
 
@@ -359,6 +361,14 @@ int textBinding(lua_State *L) {
     return 0;
 }
 
+int setFPSBinding(lua_State *L) {
+    l81.fps = lua_tonumber(L,-1);
+
+    if (l81.fps <= 0) l81.fps = 1;
+    SDL_setFramerate(&l81.fps_mgr,l81.fps);
+    return 0;
+}
+
 int backgroundBinding(lua_State *L) {
     int r,g,b;
 
@@ -497,7 +507,7 @@ int processSdlEvents(void) {
     if (l81.opt_show_fps) showFPS();
     SDL_Flip(l81.fb->screen);
     /* Wait some time if the frame was produced in less than 1/FPS seconds. */
-    SDL_framerateDelay(&l81.fpsMgr);
+    SDL_framerateDelay(&l81.fps_mgr);
     /* Stop execution on error */
     return l81.luaerr != NULL;
 }
@@ -982,7 +992,7 @@ int editorEvents(void) {
     editorDraw();
     /* Refresh the screen */
     SDL_Flip(l81.fb->screen);
-    SDL_framerateDelay(&l81.fpsMgr);
+    SDL_framerateDelay(&l81.fps_mgr);
     return 0;
 }
 
@@ -1083,6 +1093,8 @@ void resetProgram(void) {
     lua_setglobal(l81.L,"line");
     lua_pushcfunction(l81.L,textBinding);
     lua_setglobal(l81.L,"text");
+    lua_pushcfunction(l81.L,setFPSBinding);
+    lua_setglobal(l81.L,"setFPS");
 
     /* Start with a black screen */
     fillBackground(l81.fb,0,0,0);
@@ -1144,11 +1156,13 @@ int main(int argc, char **argv) {
         resetProgram();
         loadProgram();
         if (l81.luaerr == NULL) {
+            SDL_setFramerate(&l81.fps_mgr,l81.fps);
             l81.start_ms = mstime();
             while(!processSdlEvents());
             if (E.dirty && editorSave(l81.filename) == 0) E.dirty = 0;
         }
         E.lastevent = time(NULL);
+        SDL_setFramerate(&l81.fps_mgr,EDITOR_FPS);
         while(!editorEvents());
     }
     return 0;
