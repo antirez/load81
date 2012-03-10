@@ -75,6 +75,7 @@ function draw()
     draw_terrain()
     draw_players()
     draw_bullets()
+    draw_status()
 end
 
 function handle_input()
@@ -148,5 +149,26 @@ function draw_bullets()
     fill(255, 255, 255, 1.0)
     for i, bullet in pairs(bullets) do
         rect(bullet.x, bullet.y, 1, 1)
+    end
+end
+
+function draw_status()
+    local h = 20
+    fill(0, 0, 0, 1)
+    rect(0, HEIGHT-h, WIDTH-1, HEIGHT)
+    fill(150, 150, 150, 1)
+    line(0, HEIGHT-h-1, WIDTH-1, HEIGHT-h-1)
+    local x = 5
+    local padding = 40
+    for i, player in ipairs(players) do
+        if i == current_player_index then
+            fill(255, 255, 255, 1)
+        else
+            fill(255, 255, 255, 0.5)
+        end
+        local str = string.format("player %d: angle %d", i, player.angle)
+        text(x, HEIGHT-18, str)
+        x = x + str:len()*10 + padding
+        line(x-padding/2, HEIGHT-1, x-padding/2, HEIGHT-h)
     end
 end
