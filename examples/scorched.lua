@@ -31,6 +31,7 @@ function setup_players()
         local player = {}
         player.x = math.random(10, WIDTH-10)
         player.y = terrain[player.x]
+        player.angle = 30
         player.r = 255
         player.g = 0
         player.b = 0
@@ -60,5 +61,9 @@ function draw_players()
     for i, player in ipairs(players) do
         fill(player.r, player.g, player.b, 1)
         rect(player.x-6, player.y, 12, 8)
+        local l = 13
+        line(player.x, player.y+6,
+             player.x + l*math.cos(math.rad(player.angle)),
+             player.y+6 + l*math.sin(math.rad(player.angle)))
     end
 end
