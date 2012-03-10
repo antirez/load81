@@ -31,6 +31,8 @@
 #include <ctype.h>
 
 #include <SDL.h>
+#include <SDL_gfxPrimitives.h>
+#include <SDL_framerate.h>
 #include <lua.h>
 #include <lauxlib.h>
 #include <lualib.h>
@@ -75,6 +77,7 @@ struct globalConfig {
     int alpha;
     long long start_ms;
     long long epoch;
+    FPSmanager fpsMgr;
     frameBuffer *fb;
     lua_State *L;
     unsigned char *font[256];
@@ -129,22 +132,7 @@ long long mstime(void) {
     return ustime()/1000;
 }
 
-/* ============================= Frame buffer ==============================
- * SDL implementation of Load81 frame buffer.
- *
- * Load81 is designed to be very portable, all you need to do in order to
- * port it to something different than SDL is to write the following
- * three functions:
- *
- * - createFrameBuffer(), creates a framebuffer.
- * - setPixelWithAlpha(), draws a pixel at x,y with color RGB, and alpha.
- * - fillBackground(), fills the whole screen with the specified RDB color.
- *
- * All the other graphic primitives will use this base primitives, so the
- * only other part that needs to be ported is the one dealing with
- * mouse and keyboard events.
- */
-
+/* ============================= Frame buffer ============================== */
 SDL_Surface *sdlInit(int width, int height, int fullscreen) {
     int flags = SDL_SWSURFACE;
     SDL_Surface *screen;
@@ -155,7 +143,7 @@ SDL_Surface *sdlInit(int width, int height, int fullscreen) {
         return NULL;
     }
     atexit(SDL_Quit);
-    screen = SDL_SetVideoMode(width,height,24,flags);
+    screen = SDL_SetVideoMode(width,height,0,flags);
     if (!screen) {
         fprintf(stderr, "Can't set the video mode: %s\n", SDL_GetError());
         return NULL;
@@ -164,6 +152,7 @@ SDL_Surface *sdlInit(int width, int height, int fullscreen) {
      * keys are translated into characters with automatic support for modifiers
      * (for instance shift modifier to print capital letters and symbols). */
     SDL_EnableUNICODE(SDL_ENABLE);
+    SDL_initFramerate(&l81.fpsMgr);
     return screen;
 }
 
@@ -177,153 +166,33 @@ frameBuffer *createFrameBuffer(int width, int height) {
 }
 
 void setPixelWithAlpha(frameBuffer *fb, int x, int y, int r, int g, int b, float alpha) {
-    unsigned char *p;
-
-    if (x < 0 || x >= fb->width || y < 0 || y >= fb->height) return;
-    y = fb->height-1-y; /* y=0 is bottom border of the screen */
-    p = l81.fb->screen->pixels+y*l81.fb->screen->pitch+(x*3);
-
-#if SDL_BYTEORDER == SDL_LIL_ENDIAN
-    p[0] = (b*alpha/255)+(p[0]*(255-alpha)/255);
-    p[1] = (g*alpha/255)+(p[1]*(255-alpha)/255);
-    p[2] = (r*alpha/255)+(p[2]*(255-alpha)/255);
-#else
-    p[0] = (r*alpha/255)+(p[0]*(255-alpha)/255);
-    p[1] = (g*alpha/255)+(p[1]*(255-alpha)/255);
-    p[2] = (b*alpha/255)+(p[2]*(255-alpha)/255);
-#endif
+    pixelRGBA(fb->screen, x, fb->height-1-y, r, g, b, alpha);
 }
 
 void fillBackground(frameBuffer *fb, int r, int g, int b) {
-    int x, y;
-    unsigned char *s;
-
-    for (y = 0; y < fb->height; y++) {
-        s = fb->screen->pixels+y*(fb->screen->pitch);
-        for (x = 0; x < fb->width; x++) {
-#if SDL_BYTEORDER == SDL_LIL_ENDIAN
-            s[0] = b;
-            s[1] = g;
-            s[2] = r;
-#else
-            s[0] = r;
-            s[1] = g;
-            s[2] = b;
-#endif
-            s += 3;
-        }
-    }
+    boxRGBA(fb->screen, 0, 0, fb->width-1, fb->height-1, r, g, b, 255);
 }
 
 /* ========================== Drawing primitives ============================ */
 
-void drawHline(frameBuffer *fb, int x1, int x2, int y, int r, int g, int b, int alpha) {
-    int aux, x;
-
-    if (x1 > x2) {
-        aux = x1;
-        x1 = x2;
-        x2 = aux;
-    }
-    for (x = x1; x <= x2; x++)
-        setPixelWithAlpha(fb,x,y,r,g,b,alpha);
+void drawHline(frameBuffer *fb, int x1, int x2, int y, int r, int g, int b, float alpha) {
+    hlineRGBA(fb->screen, x1, x2, fb->height-1-y, r, g, b, alpha);
 }
 
-void drawEllipse(frameBuffer *fb, int xc, int yc, int radx, int rady, int r, int g, int b, int alpha) {
-    int x1, x2, y;
-    float xshift;
-
-    for (y=yc-rady; y<=yc+rady; y++) {
-        xshift = sqrt((rady*rady) - ((y - yc)*(y - yc)))*((float)radx/rady);
-        x1 = round(xc-xshift);
-        x2 = round(xc+xshift);
-        drawHline(fb,x1,x2,y,r,g,b,alpha);
-    }
+void drawEllipse(frameBuffer *fb, int xc, int yc, int radx, int rady, int r, int g, int b, float alpha) {
+    filledEllipseRGBA(fb->screen, xc, fb->height-1-yc, radx, rady, r, g, b, alpha);
 }
 
-void drawBox(frameBuffer *fb, int x1, int y1, int x2, int y2, int r, int g, int b, int alpha) {
-    int x, y;
-
-    for (x = x1; x <= x2; x++ ) {
-        for (y = y1; y <= y2; y++) {
-            setPixelWithAlpha(fb,x,y,r,g,b,alpha);
-        }
-    }
+void drawBox(frameBuffer *fb, int x1, int y1, int x2, int y2, int r, int g, int b, float alpha) {
+    boxRGBA(fb->screen, x1, fb->height-1-y1, x2, fb->height-1-y2, r, g, b, alpha);
 }
 
-void drawTriangle(frameBuffer *fb, int x1, int y1, int x2, int y2, int x3, int y3, int r, int g, int b, int alpha) {
-    int swap, t;
-    struct {
-        float x, y;
-    } A, B, C, E, S;
-    float dx1,dx2,dx3;
-
-    A.x = x1;
-    A.y = y1;
-    B.x = x2;
-    B.y = y2;
-    C.x = x3;
-    C.y = y3;
-
-    /* For this algorithm to work we need to sort A, B, C by 'y' */
-    do {
-        swap = 0;
-        if (A.y > B.y) {
-            t = A.y; A.y = B.y; B.y = t;
-            t = A.x; A.x = B.x; B.x = t;
-            swap++;
-        }
-        if (B.y > C.y) {
-            t = B.y; B.y = C.y; C.y = t;
-            t = B.x; B.x = C.x; C.x = t;
-            swap++;
-        }
-    } while(swap);
-
-    if (B.y-A.y > 0) dx1=(B.x-A.x)/(B.y-A.y); else dx1=B.x - A.x;
-    if (C.y-A.y > 0) dx2=(C.x-A.x)/(C.y-A.y); else dx2=0;
-    if (C.y-B.y > 0) dx3=(C.x-B.x)/(C.y-B.y); else dx3=0;
-
-    S=E=A;
-    if(dx1 > dx2) {
-        for(;S.y<=B.y;S.y++,E.y++,S.x+=dx2,E.x+=dx1)
-            drawHline(fb,S.x,E.x,S.y,r,g,b,alpha);
-        E=B;
-        E.y+=1;
-        for(;S.y<=C.y;S.y++,E.y++,S.x+=dx2,E.x+=dx3)
-            drawHline(fb,S.x,E.x,S.y,r,g,b,alpha);
-    } else {
-        for(;S.y<=B.y;S.y++,E.y++,S.x+=dx1,E.x+=dx2)
-            drawHline(fb,S.x,E.x,S.y,r,g,b,alpha);
-        S=B;
-        S.y+=1;
-        for(;S.y<=C.y;S.y++,E.y++,S.x+=dx3,E.x+=dx2)
-            drawHline(fb,S.x,E.x,S.y,r,g,b,alpha);
-    }
+void drawTriangle(frameBuffer *fb, int x1, int y1, int x2, int y2, int x3, int y3, int r, int g, int b, float alpha) {
+    filledTrigonRGBA(fb->screen, x1, fb->height-1-y1, x2, fb->height-1-y2, x3, fb->height-1-y3, r, g, b, alpha);
 }
 
-
-/* Bresenham algorithm */
-void drawLine(frameBuffer *fb, int x1, int y1, int x2, int y2, int r, int g, int b, int alpha) {
-    int dx = abs(x2-x1);
-    int dy = abs(y2-y1);
-    int sx = (x1 < x2) ? 1 : -1;
-    int sy = (y1 < y2) ? 1 : -1;
-    int err = dx-dy, e2;
-
-    while(1) {
-        setPixelWithAlpha(fb,x1,y1,r,g,b,alpha);
-        if (x1 == x2 && y1 == y2) break;
-        e2 = err*2;
-        if (e2 > -dy) {
-            err -= dy;
-            x1 += sx;
-        }
-        if (e2 < dx) {
-            err += dx;
-            y1 += sy;
-        }
-    }
+void drawLine(frameBuffer *fb, int x1, int y1, int x2, int y2, int r, int g, int b, float alpha) {
+    lineRGBA(fb->screen, x1, fb->height-1-y1, x2, fb->height-1-y2, r, g, b, alpha);
 }
 
 /* ============================= Bitmap font =============================== */
@@ -573,7 +442,6 @@ void showFPS(void) {
 
 int processSdlEvents(void) {
     SDL_Event event;
-    long long start = mstime(), frametime;
 
     resetEvents();
     while (SDL_PollEvent(&event)) {
@@ -624,9 +492,7 @@ int processSdlEvents(void) {
     if (l81.opt_show_fps) showFPS();
     SDL_Flip(l81.fb->screen);
     /* Wait some time if the frame was produced in less than 1/FPS seconds. */
-    frametime = mstime()-start;
-    if (frametime < (1000/l81.fps))
-        sleep_milliseconds((1000/l81.fps)-frametime);
+    SDL_framerateDelay(&l81.fpsMgr);
     /* Stop execution on error */
     return l81.luaerr != NULL;
 }
@@ -1111,6 +977,7 @@ int editorEvents(void) {
     editorDraw();
     /* Refresh the screen */
     SDL_Flip(l81.fb->screen);
+    SDL_framerateDelay(&l81.fpsMgr);
     return 0;
 }
 
