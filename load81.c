@@ -429,7 +429,7 @@ int spriteBinding(lua_State *L) {
     SDL_Surface *s = NULL;
     const char *filename;
     int x, y;
-    int i, j;
+    //int i, j;
 
     filename = lua_tostring(L, 1);
     x = lua_tonumber(L, 2);
@@ -438,6 +438,11 @@ int spriteBinding(lua_State *L) {
     s = loadSprite(filename);
     if (s == NULL) return 0;
 
+    SDL_Rect dst = {x, y, 32, 32};
+
+    SDL_BlitSurface(s, NULL, l81.fb->screen, &dst);
+
+#if 0
     for (j = 0 ; j < s->h ; j++)
     {
         for (i = 0 ; i < s->w ; i++)
@@ -447,6 +452,7 @@ int spriteBinding(lua_State *L) {
             setPixelWithAlpha(l81.fb, x+i, y+s->h-j, p[0], p[1], p[2], l81.alpha);
         }
     }
+#endif
 
     return 0;
 }
