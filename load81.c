@@ -762,22 +762,28 @@ int editorLineType(erow *row, int filerow) {
 void editorDrawChars(void) {
     int y,x;
     erow *r;
+    char buf[32];
 
     for (y = 0; y < E.screenrows; y++) {
-        int filerow = E.rowoff+y;
+        int chary, filerow = E.rowoff+y;
+
         if (filerow >= E.numrows) break;
+        chary = l81.height-((y+1)*FONT_HEIGHT);
+        chary -= E.margin_top;
         r = &E.row[filerow];
+
+        snprintf(buf,sizeof(buf),"%d",filerow%1000);
+        bfWriteString(l81.fb,0,chary,buf,strlen(buf),120,120,120,255);
+
         for (x = 0; x < E.screencols; x++) {
             int idx = x+E.coloff;
-            int charx,chary;
+            int charx;
             int tr,tg,tb;
             int line_type = editorLineType(r,filerow);
 
             if (idx >= r->size) break;
             charx = x*FONT_KERNING;
-            chary = l81.height-((y+1)*FONT_HEIGHT);
             charx += E.margin_left;
-            chary -= E.margin_top;
             switch(line_type) {
             case LINE_TYPE_ERROR: tr = 255; tg = 100, tb = 100; break;
             case LINE_TYPE_COMMENT: tr = 180, tg = 180, tb = 0; break;
@@ -858,6 +864,7 @@ void editorMouseClicked(int x, int y, int button) {
 void editorMoveCursor(int key) {
     int filerow = E.rowoff+E.cy;
     int filecol = E.coloff+E.cx;
+    int rowlen;
     erow *row = (filerow >= E.numrows) ? NULL : &E.row[filerow];
 
     switch(key) {
@@ -893,6 +900,18 @@ void editorMoveCursor(int key) {
             }
         }
         break;
+    }
+    /* Fix cx if the current line has not enough chars. */
+    filerow = E.rowoff+E.cy;
+    filecol = E.coloff+E.cx;
+    row = (filerow >= E.numrows) ? NULL : &E.row[filerow];
+    rowlen = row ? row->size : 0;
+    if (filecol > rowlen) {
+        E.cx -= filecol-rowlen;
+        if (E.cx < 0) {
+            E.coloff += E.cx;
+            E.cx = 0;
+        }
     }
 }
 
