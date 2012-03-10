@@ -773,7 +773,7 @@ void editorDrawChars(void) {
         r = &E.row[filerow];
 
         snprintf(buf,sizeof(buf),"%d",filerow%1000);
-        bfWriteString(l81.fb,0,chary,buf,strlen(buf),120,120,120,1);
+        bfWriteString(l81.fb,0,chary,buf,strlen(buf),120,120,120,255);
 
         for (x = 0; x < E.screencols; x++) {
             int idx = x+E.coloff;
