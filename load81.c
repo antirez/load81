@@ -88,6 +88,7 @@ struct globalConfig {
     int luaerrline;
     /* Command line switches */
     int opt_show_fps;
+    int opt_full_screen;
 } l81;
 
 typedef struct erow {
@@ -163,7 +164,7 @@ frameBuffer *createFrameBuffer(int width, int height) {
 
     fb->width = width;
     fb->height = height;
-    fb->screen = sdlInit(width,height,0);
+    fb->screen = sdlInit(width,height,l81.opt_full_screen);
     return fb;
 }
 
@@ -1028,6 +1029,7 @@ void initConfig(void) {
     l81.luaerr = NULL;
     l81.luaerrline = 0;
     l81.opt_show_fps = 0;
+    l81.opt_full_screen = 0;
     l81.filename = NULL;
 
     /* Load the bitmap font */
@@ -1125,6 +1127,7 @@ void showCliHelp(void) {
     fprintf(stderr, "Usage: load81 [options] program.lua\n"
            "  --width <pixels>       Set screen width\n"
            "  --height <pixels>      Set screen height\n"
+           "  --full                 Enable full screen mode\n"
            "  --fps                  Show frames per second\n"
            "  --help                 Show this help screen\n"
            );
@@ -1140,6 +1143,8 @@ void parseOptions(int argc, char **argv) {
 
         if (!strcasecmp(arg,"--fps")) {
             l81.opt_show_fps = 1;
+        } else if (!strcasecmp(arg,"--full")) {
+            l81.opt_full_screen = 1;
         } else if (!strcasecmp(arg,"--width") && !lastarg) {
             l81.width = atoi(argv[++j]);
         } else if (!strcasecmp(arg,"--height") && !lastarg) {
