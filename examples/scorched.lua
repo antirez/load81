@@ -68,6 +68,7 @@ end
 
 function setup_bullets()
     bullets = {}
+    bullets_in_flight = 0
 end
 
 function draw()
@@ -94,10 +95,10 @@ function handle_input()
         current_player.power = current_player.power - 1
     end
     if keyboard.pressed['space'] and
+       bullets_in_flight == 0 and
        last_fire_tick < ticks - 16 then
         fire()
         last_fire_tick = ticks
-        next_player()
     end
 end
 
@@ -115,6 +116,7 @@ function fire()
     }
     bullets[next_bullet_id] = bullet
     next_bullet_id = next_bullet_id + 1
+    bullets_in_flight = bullets_in_flight + 1
 end
 
 function tick_bullets()
@@ -125,12 +127,21 @@ function tick_bullets()
         local ix = math.floor(bullet.x+0.5)
         if ix < 0 or ix >= WIDTH then
             bullets[i] = nil
+            after_bullet_collision()
         elseif bullet.y < terrain[ix] then
             for x = math.max(ix-10,0), math.min(ix+10,WIDTH-1) do
                 terrain[x] = terrain[x] - 10
             end
             bullets[i] = nil
+            after_bullet_collision()
         end
+    end
+end
+
+function after_bullet_collision()
+    bullets_in_flight = bullets_in_flight - 1
+    if bullets_in_flight == 0 then
+        next_player()
     end
 end
 
