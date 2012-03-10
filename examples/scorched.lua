@@ -1,4 +1,7 @@
 -- Basic Scorched Earth clone
+-- TODO circular explosions
+-- TODO explosion graphics
+-- TODO drop players when terrain is destroyed
 
 NUM_PLAYERS = 3
 G = 0.1
@@ -74,6 +77,7 @@ function handle_input()
     end
 end
 
+local next_bullet_id = 1
 function fire()
     local player = current_player
     local a = math.rad(player.angle)
@@ -85,14 +89,24 @@ function fire()
         vx = math.cos(a)*speed,
         vy = math.sin(a)*speed,
     }
-    table.insert(bullets, bullet)
+    bullets[next_bullet_id] = bullet
+    next_bullet_id = next_bullet_id + 1
 end
 
 function tick_bullets()
-    for i, bullet in ipairs(bullets) do
+    for i, bullet in pairs(bullets) do
         bullet.x = bullet.x + bullet.vx
         bullet.y = bullet.y + bullet.vy
         bullet.vy = bullet.vy - G
+        local ix = math.floor(bullet.x+0.5)
+        if ix < 0 or ix >= WIDTH then
+            bullets[i] = nil
+        elseif bullet.y < terrain[ix] then
+            for x = math.max(ix-10,0), math.min(ix+10,WIDTH-1) do
+                terrain[x] = terrain[x] - 10
+            end
+            bullets[i] = nil
+        end
     end
 end
 
@@ -117,7 +131,7 @@ end
 
 function draw_bullets()
     fill(255, 255, 255, 1.0)
-    for i, bullet in ipairs(bullets) do
+    for i, bullet in pairs(bullets) do
         rect(bullet.x, bullet.y, 1, 1)
     end
 end
