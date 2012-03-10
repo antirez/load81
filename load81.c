@@ -1077,7 +1077,8 @@ void initScreen(void) {
 void resetProgram(void) {
     char *initscript =
         "keyboard={}; keyboard['pressed']={};"
-        "mouse={}; mouse['pressed']={};";
+        "mouse={}; mouse['pressed']={};"
+        "math.randomseed(RANDOM_SEED);";
 
     l81.epoch = 0;
     if (l81.L) lua_close(l81.L);
@@ -1089,6 +1090,7 @@ void resetProgram(void) {
     luaopen_debug(l81.L);
     setNumber("WIDTH",l81.width);
     setNumber("HEIGHT",l81.height);
+    setNumber("RANDOM_SEED",ustime());
     luaL_loadbuffer(l81.L,initscript,strlen(initscript),"initscript");
     lua_pcall(l81.L,0,0,0);
 
