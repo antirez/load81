@@ -327,9 +327,9 @@ void editorDraw() {
  * implement first pression of key and key repeating.
  *
  * This function returns if the key was just pressed or if it is repeating. */
-#define KEY_REPEAT_PERIOD 4
+#define KEY_REPEAT_PERIOD 2
 #define KEY_REPEAT_PERIOD_FAST 1
-#define KEY_REPEAT_DELAY 16
+#define KEY_REPEAT_DELAY 8
 int pressed_or_repeated(int counter) {
     int period;
 
