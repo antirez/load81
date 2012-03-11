@@ -308,9 +308,9 @@ void editorDraw() {
     drawBox(E.fb,0,0,E.fb->width-1,E.fb->height-1,165,165,255,255);
     drawBox(E.fb,
             E.margin_left,
-            E.margin_top,
+            E.margin_bottom,
             E.fb->width-1-E.margin_right,
-            E.fb->height-1-E.margin_bottom,66,66,231,255);
+            E.fb->height-1-E.margin_top,66,66,231,255);
     editorDrawChars();
     editorDrawCursor();
     /* Show buttons */
@@ -350,6 +350,29 @@ void editorMouseClicked(int x, int y, int button) {
     } else if (abs(x-SAVE_BUTTON_X) < 15 && abs(y-SAVE_BUTTON_Y) < 15 &&
                button == 1) {
         if (editorSave(E.filename) == 0) E.dirty = 0;
+    } else if (x >= E.margin_left && x <= E.fb->width-1-E.margin_right &&
+               y >= E.margin_bottom && y <= E.fb->height-1-E.margin_top)
+    {
+        int realheight = E.fb->height - E.margin_top - E.margin_bottom;
+        int realy = y - E.margin_bottom;
+        int row = (realheight-realy)/FONT_HEIGHT;
+        int col = (x-E.margin_left)/FONT_KERNING;
+        int filerow = E.rowoff+row;
+        int filecol = E.coloff+col;
+        erow *r = (filerow >= E.numrows) ? NULL : &E.row[filerow];
+    
+        E.cblink = 0;
+        if (filerow == E.numrows) {
+            E.cx = 0;
+            E.cy = filerow-E.rowoff;
+        } else if (r) {
+            if (filecol >= r->size)
+                E.cx = r->size-E.coloff;
+            else
+                E.cx = filecol-E.coloff;
+            E.cy = filerow-E.rowoff;
+        }
+        printf("row:%p filerow:%d filecol:%d\n", (void*)r, filerow, filecol);
     }
 }
 
