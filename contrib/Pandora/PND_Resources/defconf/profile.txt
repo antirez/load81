@@ -9,6 +9,7 @@ filepath=./examples/
 exepath=./load81 --full
 extarg=--width;0;%na%;800
 extarg=--height;0;%na%;480
+extarg=--bpp;0;%na%;16
 extarg=;0;%na%;%filename%
 
 # Custom Entries Settings
