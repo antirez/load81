@@ -10,9 +10,10 @@
 #include <lauxlib.h>
 #include <lualib.h>
 
-#define FONT_WIDTH 16
-#define FONT_HEIGHT 16
-#define FONT_KERNING 10
+#define FONT_WIDTH 9
+#define FONT_HEIGHT 15
+#define FONT_PITCH 16
+#define FONT_KERNING 9
 
 typedef struct frameBuffer {
     int width;

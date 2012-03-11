@@ -80,13 +80,13 @@ void bfWriteChar(frameBuffer *fb, int xp, int yp, int c, int r, int g, int b, in
     unsigned char *bitmap = BitmapFont[c&0xff];
 
     if (!bitmap) bitmap = BitmapFont['?'];
-    for (y = 0; y < 16; y++) {
-        for (x = 0; x < 16; x++) {
-            int byte = (y*16+x)/8;
+    for (y = 0; y < FONT_HEIGHT; y++) {
+        for (x = 0; x < FONT_WIDTH; x++) {
+            int byte = (y*FONT_PITCH+x)/8;
             int bit = x%8;
             int set = bitmap[byte] & (0x80>>bit);
 
-            if (set) setPixelWithAlpha(fb,xp+x,yp-y+15,r,g,b,alpha);
+            if (set) setPixelWithAlpha(fb,xp+x,yp-y+FONT_HEIGHT-1,r,g,b,alpha);
         }
     }
 }
@@ -95,7 +95,7 @@ void bfWriteString(frameBuffer *fb, int xp, int yp, const char *s, int len, int 
     int i;
 
     for (i = 0; i < len; i++)
-        bfWriteChar(fb,xp-((16-FONT_KERNING)/2)+i*FONT_KERNING,yp,
+        bfWriteChar(fb,xp-((FONT_WIDTH-FONT_KERNING)/2)+i*FONT_KERNING,yp,
                     s[i],r,g,b,alpha);
 }
 
