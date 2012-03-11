@@ -154,7 +154,7 @@ function drawBullets()
     local i,b
     for i,b in pairs(bullets) do
         fill(255,255,255,1)
-        rect(b.x,b.y,1,1)
+        rect(b.x-1,b.y-1,3,3)
     end
 end
 
