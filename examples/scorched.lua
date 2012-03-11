@@ -38,6 +38,7 @@ end
 
 function setup_players()
     players = {}
+    live_players = NUM_PLAYERS
     for i = 1, NUM_PLAYERS do
         local player = {}
         player.x = math.random(10, WIDTH-10)
@@ -60,11 +61,12 @@ function setup_players()
 end
 
 function next_player()
+    if live_players == 0 then return end
     current_player_index = next(players, current_player_index)
-    if current_player_index == nil then
-        current_player_index = next(players)
-    end
     current_player = players[current_player_index]
+    if current_player_index == nil or current_player.health == 0 then
+        return next_player()
+    end
 end
 
 -- Choose a color representing the player's status (current, dead, alive)
@@ -83,14 +85,40 @@ function setup_bullets()
     bullets_in_flight = 0
 end
 
+function find_victor()
+    local winner_index = nil
+    for i, player in ipairs(players) do
+        if player.health > 0 then
+            if winner_index then
+                return
+            else
+                winner_index = i
+            end
+        end
+    end
+    return winner_index
+end
+
 function draw()
     ticks = ticks + 1
-    handle_input()
-    tick_bullets()
+    local game_over = live_players <= 1
+    if not game_over then
+        handle_input()
+        tick_bullets()
+    end
     draw_terrain()
     draw_players()
     draw_bullets()
     draw_status()
+    if game_over then
+        if live_players == 1 then
+            local winning_player_index = find_victor()
+            local str = string.format("Player %d wins!", winning_player_index)
+            text(WIDTH/2-str:len()*5, HEIGHT/2, str)
+        else
+            text(WIDTH/2-5*5, HEIGHT/2, "Draw!")
+        end
+    end
 end
 
 function handle_input()
@@ -154,11 +182,13 @@ end
 function damage_players(x, y, r, s)
     for i, player in ipairs(players) do
         local d = math.sqrt((player.x-x)^2, (player.y-y)^2)
-        if d < r then
-            -- TODO check for death
+        if player.health > 0 and d < r then
             -- Damage attenuates linearly with distance (in 2d).
             local e = s*(1-(d/r))
             player.health = math.max(player.health - e, 0)
+            if player.health == 0 then
+                live_players = live_players - 1
+            end
         end
     end
 end
