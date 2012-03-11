@@ -1,5 +1,6 @@
 -- Basic Scorched Earth clone
 -- TODO explosion graphics
+-- TODO collide bullets directly with players
 
 NUM_PLAYERS = 3
 G = 0.1
@@ -43,6 +44,7 @@ function setup_players()
         player.y = terrain[player.x]
         player.angle = 90
         player.power = 100
+        player.health = 100
         player.r = 255
         player.g = 0
         player.b = 0
@@ -112,6 +114,8 @@ function fire()
         y = player.y,
         vx = math.cos(a)*speed,
         vy = math.sin(a)*speed,
+        exp_radius = 30,
+        exp_damage = 50,
     }
     bullets[next_bullet_id] = bullet
     next_bullet_id = next_bullet_id + 1
@@ -128,9 +132,22 @@ function tick_bullets()
             bullets[i] = nil
             after_bullet_collision()
         elseif bullet.y < terrain[ix] then
-            deform_terrain(ix, math.floor(terrain[ix]), 30)
+            damage_players(bullet.x, terrain[ix], bullet.exp_radius, bullet.exp_damage)
+            deform_terrain(ix, math.floor(terrain[ix]), bullet.exp_radius)
             bullets[i] = nil
             after_bullet_collision()
+        end
+    end
+end
+
+function damage_players(x, y, r, s)
+    for i, player in ipairs(players) do
+        local d = math.sqrt((player.x-x)^2, (player.y-y)^2)
+        if d < r then
+            -- TODO check for death
+            -- Damage attenuates linearly with distance (in 2d).
+            local e = s*(1-(d/r))
+            player.health = math.max(player.health - e, 0)
         end
     end
 end
@@ -215,7 +232,7 @@ function draw_status()
         else
             fill(255, 255, 255, 0.5)
         end
-        local str = string.format("player %d: angle %d; power %d", i, player.angle, player.power)
+        local str = string.format("player %d: health %d; angle %d; power %d", i, player.health, player.angle, player.power)
         text(x, HEIGHT-18, str)
         x = x + str:len()*10 + padding
         line(x-padding/2, HEIGHT-1, x-padding/2, HEIGHT-STATUS_HEIGHT)
