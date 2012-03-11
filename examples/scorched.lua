@@ -67,6 +67,17 @@ function next_player()
     current_player = players[current_player_index]
 end
 
+-- Choose a color representing the player's status (current, dead, alive)
+function player_status_fill(player)
+    if player == current_player then
+        fill(220, 220, 220, 1)
+    elseif player.health == 0 then
+        fill(100, 0, 0, 1)
+    else
+        fill(127, 127, 127, 1)
+    end
+end
+
 function setup_bullets()
     bullets = {}
     bullets_in_flight = 0
@@ -195,11 +206,7 @@ function draw_players()
         line(player.x, player.y+6,
              player.x + l*math.cos(math.rad(player.angle)),
              player.y+6 + l*math.sin(math.rad(player.angle)))
-        if i == current_player_index then
-            fill(255, 255, 255, 1)
-        else
-            fill(255, 255, 255, 0.5)
-        end
+        player_status_fill(player)
         text(player.x-5, player.y-18, tostring(i))
     end
 end
@@ -227,14 +234,11 @@ function draw_status()
     local x = 5
     local padding = 40
     for i, player in ipairs(players) do
-        if i == current_player_index then
-            fill(255, 255, 255, 1)
-        else
-            fill(255, 255, 255, 0.5)
-        end
+        player_status_fill(player)
         local str = string.format("player %d: health %d; angle %d; power %d", i, player.health, player.angle, player.power)
         text(x, HEIGHT-18, str)
         x = x + str:len()*10 + padding
+        fill(150, 150, 150, 1)
         line(x-padding/2, HEIGHT-1, x-padding/2, HEIGHT-STATUS_HEIGHT)
     end
 end
