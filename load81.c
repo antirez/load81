@@ -62,6 +62,7 @@
 #define sleep_milliseconds(x) usleep((x)*1000)
 #endif
 
+
 /* ============================= Data structures ============================ */
 
 typedef struct frameBuffer {
@@ -230,6 +231,67 @@ void bfWriteString(frameBuffer *fb, int xp, int yp, const char *s, int len, int 
                     s[i],r,g,b,alpha);
 }
 
+/* =============================== Sprites ================================== */
+
+#include <SDL_image.h>
+
+#define SPRITE_MT "l81.sprite"
+
+int sprite_gc(lua_State *L) {
+    SDL_Surface **pps = (SDL_Surface **)luaL_checkudata(L, 1, SPRITE_MT);
+    if (pps) SDL_FreeSurface(*pps);
+
+    return 0;
+}
+
+static const struct luaL_Reg sprite_m[] = {
+    { "__gc",  sprite_gc },
+    { NULL,    NULL      }
+};
+
+SDL_Surface * loadSprite(const char *filename)
+{
+    SDL_Surface **pps;
+
+    lua_getfield(l81.L, LUA_REGISTRYINDEX, filename);
+    if (lua_isnil(l81.L, -1))
+    {
+        SDL_Surface *ps = IMG_Load(filename);
+        if (ps == NULL) return 0;
+
+        pps = (SDL_Surface **)lua_newuserdata(l81.L, sizeof(SDL_Surface *));
+        *pps = ps;
+
+        luaL_getmetatable(l81.L, SPRITE_MT);
+        lua_setmetatable(l81.L, -2);
+
+        lua_setfield(l81.L, LUA_REGISTRYINDEX, filename);
+    }
+    else
+    {
+        pps = (SDL_Surface **)luaL_checkudata(l81.L, -1, SPRITE_MT);
+        lua_pop(l81.L, -1);
+    }
+
+    return *pps;
+}
+
+void blitSprite(const char *filename, int x, int y)
+{
+    SDL_Surface *s;
+
+    s = loadSprite(filename);
+    if (s == NULL)
+    {   
+        luaL_error(l81.L, "failed to load sprite %s", filename);
+        // throw error
+        return;
+    }
+
+    SDL_Rect dst = {x, l81.fb->height-1-y - s->h, s->w, s->h};
+    SDL_BlitSurface(s, NULL, l81.fb->screen, &dst);
+}
+
 /* ========================= Lua helper functions ========================== */
 
 /* Set a Lua global to the specified number. */
@@ -377,6 +439,17 @@ int backgroundBinding(lua_State *L) {
     g = lua_tonumber(L,-2);
     b = lua_tonumber(L,-1);
     fillBackground(l81.fb,r,g,b);
+    return 0;
+}
+
+int spriteBinding(lua_State *L) {
+    const char *filename;
+    int x, y;
+
+    filename = lua_tostring(L, 1);
+    x = lua_tonumber(L, 2);
+    y = lua_tonumber(L, 3);
+    blitSprite(filename, x, y);
     return 0;
 }
 
@@ -1116,6 +1189,15 @@ void resetProgram(void) {
     lua_setglobal(l81.L,"text");
     lua_pushcfunction(l81.L,setFPSBinding);
     lua_setglobal(l81.L,"setFPS");
+
+    lua_pushcfunction(l81.L,spriteBinding);
+    lua_setglobal(l81.L,"sprite");
+
+    luaL_newmetatable(l81.L, SPRITE_MT);
+    lua_pushvalue(l81.L, -1);
+    lua_setfield(l81.L, -2, "__index");
+
+    luaL_register(l81.L, NULL, sprite_m);
 
     /* Start with a black screen */
     fillBackground(l81.fb,0,0,0);
