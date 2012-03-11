@@ -1,12 +1,14 @@
 # Global Settings
-targetapp=LOAD81 by antirez
+targetapp=LOAD81 by antirez, Pandora build by torpor
 filepath=./examples/
 
 # Command Settings
 
 # Extension Settings
 [lua]
-exepath=/media/SD16/pandora/hak/load81/PND_Make/load81
+exepath=./load81 --full
+extarg=--width;0;%na%;800
+extarg=--height;0;%na%;480
 extarg=;0;%na%;%filename%
 
 # Custom Entries Settings
