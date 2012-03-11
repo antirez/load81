@@ -1,9 +1,16 @@
--- Basic Scorched Earth clone
--- TODO explosion graphics
--- TODO collide bullets directly with players
+-- Basic Scorched Earth clone.
+-- Copyright (C) 2012 Rich Lane
+-- This code is released under the BSD two-clause license.
+--
+-- Use the arrow keys to adjust the angle and power of the tank gun. Hit
+-- space to fire. The last tank alive wins!
+--
+-- TODO Collide bullets directly with players.
+-- TODO Fall damage.
+-- TODO Wind.
 
 NUM_PLAYERS = 3
-G = 0.1
+G = 0.1 -- Acceleration due to gravity (pixels/frame).
 MAX_POWER = 300
 STATUS_HEIGHT = 75
 
@@ -16,6 +23,7 @@ function setup()
     setup_explosions()
 end
 
+-- Generate terrain by adding random sine waves.
 function setup_terrain()
     terrain = {}
     local freqs = {}
@@ -61,6 +69,7 @@ function setup_players()
     next_player()
 end
 
+-- Pick a new non-dead player
 function next_player()
     if live_players == 0 then return end
     current_player_index = next(players, current_player_index)
@@ -90,6 +99,7 @@ function setup_explosions()
     explosions = {}
 end
 
+-- If there is only one live player left return its index. Otherwise return nil.
 function find_victor()
     local winner_index = nil
     for i, player in ipairs(players) do
@@ -167,6 +177,7 @@ function fire()
     bullets_in_flight = bullets_in_flight + 1
 end
 
+-- Do bullet physics and check for collisions with terrain or the sides of the screen.
 function tick_bullets()
     for i, bullet in pairs(bullets) do
         bullet.x = bullet.x + bullet.vx
@@ -186,6 +197,7 @@ function tick_bullets()
     end
 end
 
+-- Find the players in the damage radius of an explosion and reduce their health.
 function damage_players(x, y, r, s)
     for i, player in ipairs(players) do
         local d = math.sqrt((player.x-x)^2, (player.y-y)^2)
@@ -200,6 +212,7 @@ function damage_players(x, y, r, s)
     end
 end
 
+-- Remove a circular chunk of terrain.
 function deform_terrain(x, y, r)
     for x2 = math.max(x-r,0), math.min(x+r,WIDTH-1) do
         local dx = x2 - x
@@ -220,6 +233,7 @@ function deform_terrain(x, y, r)
     end
 end
 
+-- If all the bullets have collided switch to the next player.
 function after_bullet_collision()
     bullets_in_flight = bullets_in_flight - 1
     if bullets_in_flight == 0 then
