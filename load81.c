@@ -735,6 +735,7 @@ void editorDelChar() {
 /* Load the specified program in the editor memory and returns 0 on success
  * or 1 on error. */
 int editorOpen(char *filename) {
+#ifndef __native_client__
     FILE *fp;
     char line[1024];
 
@@ -754,6 +755,22 @@ int editorOpen(char *filename) {
     fclose(fp);
     E.dirty = 0;
     return 0;
+#else
+    /* The asteroids example is embedded in an object file by the NaCl build
+     * script.
+     * TODO: implement file IO for NaCl. */
+    extern char _binary_examples_asteroids_lua_start[];
+    extern char _binary_examples_asteroids_lua_end[];
+    char *p = _binary_examples_asteroids_lua_start;
+    char *np;
+    while ((np = memchr(p, '\n', _binary_examples_asteroids_lua_end-p))) {
+      *np = '\0';
+      editorInsertRow(E.numrows, p);
+      p = np + 1;
+    }
+    E.dirty = 0;
+    return 0;
+#endif
 }
 
 int editorSave(char *filename) {
@@ -895,7 +912,9 @@ void editorMouseClicked(int x, int y, int button) {
     if (abs(x-POWEROFF_BUTTON_X) < 15 && abs(y-POWEROFF_BUTTON_Y) < 15 &&
         button == 1)
     {
+#ifndef __native_client__
         exit(1);
+#endif
     } else if (abs(x-SAVE_BUTTON_X) < 15 && abs(y-SAVE_BUTTON_Y) < 15 &&
                button == 1) {
         if (editorSave(l81.filename) == 0) E.dirty = 0;
@@ -1041,7 +1060,9 @@ int editorEvents(void) {
                     editorInsertChar(' ');
                 break;
             default:
-                editorInsertChar(E.key[j].translation);
+                if (E.key[j].translation != 0) {
+                    editorInsertChar(E.key[j].translation);
+                }
                 break;
             }
         }
@@ -1209,6 +1230,10 @@ void parseOptions(int argc, char **argv) {
         showCliHelp();
     }
 }
+
+#ifdef __native_client__
+#define main load81_main
+#endif
 
 int main(int argc, char **argv) {
     NOTUSED(argc);

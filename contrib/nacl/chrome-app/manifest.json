@@ -1,0 +1,16 @@
+{
+  "name": "rlane-load81",
+  "description": "Lua programming environment for kids similar to Codea",
+  "version": "0.0.0.1",
+  "icons": {
+    "128": "icon_128.png"
+  },
+  "app": {
+    "urls": [
+      "http://rlane-load81.appspot.com/"
+    ],
+    "launch": {
+      "web_url": "http://rlane-load81.appspot.com/"
+    }
+  }
+}
