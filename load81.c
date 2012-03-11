@@ -213,8 +213,8 @@ int backgroundBinding(lua_State *L) {
 }
 
 int getpixelBinding(lua_State *L) {
-    uint32_t pixel;
-    uint8_t r, g, b;
+    Uint32 pixel;
+    Uint8 r, g, b;
     int x, y;
 
     x = lua_tonumber(L,-2);
@@ -232,14 +232,14 @@ int getpixelBinding(lua_State *L) {
                              (y*l81.fb->screen->pitch)+(x*bpp);
         switch(bpp) {
         case 1: pixel = *p; break;
-        case 2: pixel = *(uint16_t *)p; break;
+        case 2: pixel = *(Uint16 *)p; break;
         case 3:
 #if SDL_BYTEORDER == SDL_LIL_ENDIAN
             pixel = p[0]|p[1]<<8|p[2]<<16;
 #else
             pixel = p[2]|p[1]<<8|p[0]<<16;
 #endif
-        case 4: pixel = *(uint32_t*)p; break;
+        case 4: pixel = *(Uint32*)p; break;
         default: return 0; break;
         }
     }
