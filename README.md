@@ -43,10 +43,10 @@ To switch between program and editor mode press the ESC key.
 
 Check the "examples" folder for small examples.
 
-DRAWING API
+PROGRAMMING INTERFACE
 ===
 
-Similar to Codea drawing primitives:
+Drawing functions:
 
 * fill(r,g,b,alpha): select the drawing color.
 * background(r,g,b): paint the whole background with the specified color.
@@ -54,12 +54,10 @@ Similar to Codea drawing primitives:
 * ellipse(x,y,width,height): draw an ellipse centered at x,y.
 * line(x1,y1,x2,y2): draw a line from x1,y1 to x2,y2.
 * text(x,y,string): print the specified text at x,y using a bitmap font.
-
-Not available in Codea:
-
 * triangle(x1,y1,x2,y2,x3,y3): draw a triangle with the specified vertex.
+* getpixel(x,y): return the red,gree,blue value of the specified pixel.
 
-Other functions:
+Control functions:
 
 * setFPS(fps): Set the frame rate. For default it's set to 30 frames per second.
 

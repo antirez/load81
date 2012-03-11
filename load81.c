@@ -380,6 +380,46 @@ int backgroundBinding(lua_State *L) {
     return 0;
 }
 
+int getpixelBinding(lua_State *L) {
+    uint32_t pixel;
+    uint8_t r, g, b;
+    int x, y;
+
+    x = lua_tonumber(L,-2);
+    y = l81.fb->height - 1 - lua_tonumber(L,-1);
+
+    SDL_LockSurface(l81.fb->screen);
+    if (x < 0 || x >= l81.fb->width || y < 0 || y >= l81.fb->height) {
+        pixel = 0;
+    } else {
+        int bpp;
+        unsigned char *p;
+
+        bpp = l81.fb->screen->format->BytesPerPixel;
+        p = ((unsigned char*) l81.fb->screen->pixels)+
+                             (y*l81.fb->screen->pitch)+(x*bpp);
+        switch(bpp) {
+        case 1: pixel = *p; break;
+        case 2: pixel = *(uint16_t *)p; break;
+        case 3:
+#if SDL_BYTEORDER == SDL_LIL_ENDIAN
+            pixel = p[0]|p[1]<<8|p[2]<<16;
+#else
+            pixel = p[2]|p[1]<<8|p[0]<<16;
+#endif
+        case 4: pixel = *(uint32_t*)p; break;
+        default: return 0; break;
+        }
+    }
+    SDL_GetRGB(pixel,l81.fb->screen->format,&r,&g,&b);
+    SDL_UnlockSurface(l81.fb->screen);
+    /* Return the pixel as three values: r, g, b. */
+    lua_pushnumber(L,r);
+    lua_pushnumber(L,g);
+    lua_pushnumber(L,b);
+    return 3;
+}
+
 /* ========================== Events processing ============================= */
 
 void setup(void) {
@@ -1116,6 +1156,8 @@ void resetProgram(void) {
     lua_setglobal(l81.L,"text");
     lua_pushcfunction(l81.L,setFPSBinding);
     lua_setglobal(l81.L,"setFPS");
+    lua_pushcfunction(l81.L,getpixelBinding);
+    lua_setglobal(l81.L,"getpixel");
 
     /* Start with a black screen */
     fillBackground(l81.fb,0,0,0);
