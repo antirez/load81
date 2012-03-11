@@ -1,7 +1,6 @@
 -- Basic Scorched Earth clone
 -- TODO explosion graphics
 -- TODO drop players when terrain is destroyed
--- TODO show player numbers
 
 NUM_PLAYERS = 3
 G = 0.1
@@ -172,6 +171,12 @@ function draw_players()
         line(player.x, player.y+6,
              player.x + l*math.cos(math.rad(player.angle)),
              player.y+6 + l*math.sin(math.rad(player.angle)))
+        if i == current_player_index then
+            fill(255, 255, 255, 1)
+        else
+            fill(255, 255, 255, 0.5)
+        end
+        text(player.x-5, player.y-18, tostring(i))
     end
 end
 
