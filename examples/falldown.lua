@@ -95,7 +95,7 @@ function draw()
  drawMap();
  
  -- blit hero²
- fill(game.hero.color[1],game.hero.color[2],game.hero.color[3],255);
+ fill(game.hero.color[1],game.hero.color[2],game.hero.color[3],1);
  rect(game.hero.pos.x,HEIGHT-( (game.hero.pos.y+game.hero.size.y) - game.map.scroll),game.hero.size.x,game.hero.size.y);
  
  -- scroll the map
@@ -129,7 +129,7 @@ function draw()
    
    
  -- some debug
--- fill(0,255,0,255)
+-- fill(0,255,0,1)
 -- text(100,100,string.format("scroll %d",game.map.scroll))
 -- text(100,130,string.format("screen %d*%d => %d*%d",WIDTH,HEIGHT,game.screen.size.x,game.screen.size.y))
 -- text(100,160,string.format("speed %d px/s current %d frame %d ratio %f",game.map.speed,game.map.currentSpeed,game.screen.frameFlip,game.map.speedRatio))
@@ -208,7 +208,7 @@ function drawMap()
    tile = game.map.data[ny][nx]
    if(tile > 0) then
      color = game.map.tile.color[tile]
-     fill(color[1],color[2],color[3],255)
+     fill(color[1],color[2],color[3],1)
      rect(px,py,game.map.tile.size.x,game.map.tile.size.y)  
    end
    px = px+game.map.tile.size.x

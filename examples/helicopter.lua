@@ -57,11 +57,11 @@ end
 
 function clear()
     background(0,0,0,0)
-    fill(255, 255, 255, 255)
+    fill(255, 255, 255, 1)
 end
 
 function drawBorder(arr, top)
-    fill(127, 127, 127, 255)
+    fill(127, 127, 127, 1)
     for i,b in pairs(arr) do
 
         if top == 1 then
@@ -129,7 +129,7 @@ end
 function drawHeli()
     x = heli.x
     y = heli.y
-    fill(255, 255, 255, 255)
+    fill(255, 255, 255, 1)
 
     --[[
     --        ---------
@@ -141,10 +141,10 @@ function drawHeli()
     
 
     -- (debug) collision box
-    --fill(0, 0, 255, 128)
+    --fill(0, 0, 255, 0.5)
     --rect(x, y, heli.w, heli.h)
 
-    fill(255, 255, 255, 255)
+    fill(255, 255, 255, 1)
     -- body
     rect(x+30, y+10, 50, 30)
     triangle(x+30+51, y+10, x+30+52, y+10+30, x+30+50+20, y+9)
@@ -265,14 +265,14 @@ function drawBorders()
 end
 
 function drawPoints()
-    fill(255,0,0,255)
+    fill(255,0,0,1)
     text(WIDTH-50,HEIGHT-20, string.format("%d", points))
 end
 
 function drawBlock()
     if block == nil then return end
 
-    fill(128,127,127,255)
+    fill(128,127,127,1)
     rect(block.x, (HEIGHT/2)-(block.h/2), block.w, block.h)
 end
 
@@ -306,7 +306,7 @@ function draw()
 
     if hit == 1 then
         speed = 0
-        fill(255,0,0,255)
+        fill(255,0,0,1)
         text((WIDTH/2)-40,HEIGHT/2, "we got hit")
     end
 

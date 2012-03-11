@@ -133,11 +133,11 @@ function drawShip(x,y,a)
     local triangles = {}
     table.insert(triangles,
         {x0 = -10, y0 = -10, x1 = 0, y1 = 20, x2 = 10, y2 = -10,
-          r = 255, g = 0, b = 0, alpha = 255 })
+          r = 255, g = 0, b = 0, alpha = 1 })
     if keyboard.pressed['up'] then
         table.insert(triangles,
         {x0 = -5, y0 = -10, x1 = 0, y1 = math.random(-25,-20), x2 = 5, y2 = -10,
-          r = 255, g = 255, b = 0, alpha = 255 })
+          r = 255, g = 255, b = 0, alpha = 1 })
     end
     for i,t in pairs(triangles) do
         fill(t.r,t.g,t.b,t.alpha)
@@ -153,7 +153,7 @@ end
 function drawBullets()
     local i,b
     for i,b in pairs(bullets) do
-        fill(255,255,255,255)
+        fill(255,255,255,1)
         rect(b.x-1,b.y-1,3,3)
     end
 end
@@ -163,7 +163,7 @@ end
 function drawAsteroids()
     local i,a
     for i,a in pairs(asteroids) do
-        fill(150,150,150,255)
+        fill(150,150,150,1)
         ellipse(a.x,a.y,a.ray,a.ray)
     end
 end

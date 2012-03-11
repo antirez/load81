@@ -26,19 +26,19 @@ function draw()
     background(0,0,0)
     for i,f in pairs(Flames) do
         if f.l > 35 then
-            fill(255, 255, 255, 230)
+            fill(255, 255, 255, 0.9)
             minMove = 0
         elseif f.l > 30 then
-            fill(255, 255, 192, 205)
+            fill(255, 255, 192, 0.8)
             minMove = 1
         elseif f.l > 20 then
-            fill(255, 192, 128, 178)
+            fill(255, 192, 128, 0.7)
             minMove = 2
         elseif f.l > 10 then
-            fill(220, 128, 100, 128)
+            fill(220, 128, 100, 0.5)
             minMove = 3
         else
-            fill(160, 128, 80, 76)
+            fill(160, 128, 80, 0.3)
             minMove = 5
         end
 
