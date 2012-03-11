@@ -1,6 +1,5 @@
 -- Basic Scorched Earth clone
 -- TODO explosion graphics
--- TODO drop players when terrain is destroyed
 
 NUM_PLAYERS = 3
 G = 0.1
@@ -145,6 +144,14 @@ function deform_terrain(x, y, r)
         missing = math.max(missing, 0)
         missing = math.min(missing, 2*dy)
         terrain[x2] = ty-2*dy + missing
+    end
+
+    -- Drop players
+    for i, player in ipairs(players) do
+        local ty = terrain[math.floor(player.x)]
+        if player.y > ty+1 then
+            player.y = ty+1
+        end
     end
 end
 
