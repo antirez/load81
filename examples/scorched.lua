@@ -5,7 +5,7 @@
 NUM_PLAYERS = 3
 G = 0.1
 MAX_POWER = 300
-STATUS_HEIGHT = 20
+STATUS_HEIGHT = 75
 
 function setup()
     ticks = 0
@@ -265,9 +265,12 @@ function draw_status()
     local padding = 40
     for i, player in ipairs(players) do
         player_status_fill(player)
-        local str = string.format("player %d: health %d; angle %d; power %d", i, player.health, player.angle, player.power)
-        text(x, HEIGHT-18, str)
-        x = x + str:len()*10 + padding
+        local dy = 17
+        text(x, HEIGHT-1*dy, ("player %d"):format(i))
+        text(x, HEIGHT-2*dy, ("health: %d"):format(player.health))
+        text(x, HEIGHT-3*dy, ("angle: %d"):format(player.angle))
+        text(x, HEIGHT-4*dy, ("power: %d"):format(player.power))
+        x = x + 15*10 + padding
         fill(150, 150, 150, 1)
         line(x-padding/2, HEIGHT-1, x-padding/2, HEIGHT-STATUS_HEIGHT)
     end
