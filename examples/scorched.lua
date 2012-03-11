@@ -1,7 +1,7 @@
 -- Basic Scorched Earth clone
--- TODO circular explosions
 -- TODO explosion graphics
 -- TODO drop players when terrain is destroyed
+-- TODO show player numbers
 
 NUM_PLAYERS = 3
 G = 0.1
@@ -130,12 +130,22 @@ function tick_bullets()
             bullets[i] = nil
             after_bullet_collision()
         elseif bullet.y < terrain[ix] then
-            for x = math.max(ix-10,0), math.min(ix+10,WIDTH-1) do
-                terrain[x] = terrain[x] - 10
-            end
+            deform_terrain(ix, math.floor(terrain[ix]), 30)
             bullets[i] = nil
             after_bullet_collision()
         end
+    end
+end
+
+function deform_terrain(x, y, r)
+    for x2 = math.max(x-r,0), math.min(x+r,WIDTH-1) do
+        local dx = x2 - x
+        local dy = math.sqrt(r*r - dx*dx)
+        local ty = terrain[x2]
+        local missing = y+dy - ty
+        missing = math.max(missing, 0)
+        missing = math.min(missing, 2*dy)
+        terrain[x2] = ty-2*dy + missing
     end
 end
 
