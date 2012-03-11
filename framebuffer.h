@@ -16,8 +16,7 @@ typedef struct frameBuffer {
     FPSmanager fps_mgr;
 } frameBuffer;
 
-SDL_Surface *sdlInit(int width, int height, int fullscreen);
-frameBuffer *createFrameBuffer(int width, int height, int fullscreen);
+frameBuffer *createFrameBuffer(int width, int height, int bpp, int fullscreen);
 void setPixelWithAlpha(frameBuffer *fb, int x, int y, int r, int g, int b, int alpha);
 void fillBackground(frameBuffer *fb, int r, int g, int b);
 void drawHline(frameBuffer *fb, int x1, int x2, int y, int r, int g, int b, int alpha);

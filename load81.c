@@ -40,9 +40,6 @@
 
 #define NOTUSED(V) ((void) V)
 
-#define DEFAULT_WIDTH 800
-#define DEFAULT_HEIGHT 600
-
 struct globalConfig l81;
 
 /* =========================== Utility functions ============================ */
@@ -393,6 +390,7 @@ int processSdlEvents(void) {
 void initConfig(void) {
     l81.width = DEFAULT_WIDTH;
     l81.height = DEFAULT_HEIGHT;
+    l81.bpp = DEFAULT_BPP;
     l81.fps = 30;
     l81.r = 255;
     l81.g = l81.b = 0;
@@ -426,7 +424,8 @@ int loadProgram(void) {
 }
 
 void initScreen(void) {
-    l81.fb = createFrameBuffer(l81.width,l81.height,l81.opt_full_screen);
+    l81.fb = createFrameBuffer(l81.width,l81.height,
+                               l81.bpp,l81.opt_full_screen);
 }
 
 void resetProgram(void) {
@@ -482,11 +481,12 @@ void resetProgram(void) {
 
 void showCliHelp(void) {
     fprintf(stderr, "Usage: load81 [options] program.lua\n"
-           "  --width <pixels>       Set screen width\n"
-           "  --height <pixels>      Set screen height\n"
-           "  --full                 Enable full screen mode\n"
-           "  --fps                  Show frames per second\n"
-           "  --help                 Show this help screen\n"
+"  --width <pixels>       Set screen width\n"
+"  --height <pixels>      Set screen height\n"
+"  --full                 Enable full screen mode\n"
+"  --bpp                  SDL bit per pixel setting (default=24, 0=hardware)\n"
+"  --fps                  Show frames per second\n"
+"  --help                 Show this help screen\n"
            );
     exit(1);
 }
@@ -506,6 +506,14 @@ void parseOptions(int argc, char **argv) {
             l81.width = atoi(argv[++j]);
         } else if (!strcasecmp(arg,"--height") && !lastarg) {
             l81.height = atoi(argv[++j]);
+        } else if (!strcasecmp(arg,"--bpp") && !lastarg) {
+            l81.bpp = atoi(argv[++j]);
+            if (l81.bpp != 8 && l81.bpp != 16 && l81.bpp != 24 && l81.bpp != 32
+                && l81.bpp != 0)
+            {
+                fprintf(stderr,"Invalid bit per pixel. Try with: 8, 16, 24, 32 or 0 for auto-select the hardware default.");
+                exit(1);
+            }
         } else if (!strcasecmp(arg,"--help")) {
             showCliHelp();
         } else {

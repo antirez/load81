@@ -3,7 +3,7 @@
 static unsigned char *BitmapFont[256];
 
 /* ============================= Frame buffer ============================== */
-SDL_Surface *sdlInit(int width, int height, int fullscreen) {
+SDL_Surface *sdlInit(int width, int height, int bpp, int fullscreen) {
     int flags = SDL_SWSURFACE;
     SDL_Surface *screen;
 
@@ -13,7 +13,7 @@ SDL_Surface *sdlInit(int width, int height, int fullscreen) {
         return NULL;
     }
     atexit(SDL_Quit);
-    screen = SDL_SetVideoMode(width,height,0,flags);
+    screen = SDL_SetVideoMode(width,height,bpp,flags);
     if (!screen) {
         fprintf(stderr, "Can't set the video mode: %s\n", SDL_GetError());
         return NULL;
@@ -25,12 +25,12 @@ SDL_Surface *sdlInit(int width, int height, int fullscreen) {
     return screen;
 }
 
-frameBuffer *createFrameBuffer(int width, int height, int fullscreen) {
+frameBuffer *createFrameBuffer(int width, int height, int bpp, int fullscreen) {
     frameBuffer *fb = malloc(sizeof(*fb));
 
     fb->width = width;
     fb->height = height;
-    fb->screen = sdlInit(width,height,fullscreen);
+    fb->screen = sdlInit(width,height,bpp,fullscreen);
     SDL_initFramerate(&fb->fps_mgr);
     /* Load the bitmap font */
     bfLoadFont((char**)BitmapFont);
