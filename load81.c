@@ -1071,6 +1071,7 @@ void initConfig(void) {
     l81.opt_show_fps = 0;
     l81.opt_full_screen = 0;
     l81.filename = NULL;
+    srand(mstime());
 
     /* Load the bitmap font */
     bfLoadFont((char**)l81.font);
