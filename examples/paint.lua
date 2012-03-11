@@ -4,9 +4,9 @@ end
 
 function draw()
     if mouse.pressed['1'] then
-        fill(255,0,0,.2)
+        fill(255,0,0,50)
     else
-        fill(0,0,255,.2)
+        fill(0,0,255,50)
     end
     ellipse(mouse.x,mouse.y,30,30)
 end

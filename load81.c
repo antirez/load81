@@ -126,7 +126,7 @@ int fillBinding(lua_State *L) {
     l81.r = lua_tonumber(L,-4);
     l81.g = lua_tonumber(L,-3);
     l81.b = lua_tonumber(L,-2);
-    l81.alpha = lua_tonumber(L,-1) * 255;
+    l81.alpha = lua_tonumber(L,-1);
     if (l81.r < 0) l81.r = 0;
     if (l81.r > 255) l81.r = 255;
     if (l81.g < 0) l81.g = 0;

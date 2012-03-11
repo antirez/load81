@@ -61,6 +61,12 @@ Control functions:
 
 * setFPS(fps): Set the frame rate. For default it's set to 30 frames per second.
 
+Colors and Alpha:
+
+Color components and alpha are in the range 0-255.
+An alpha value of 0 means completely transparent, while a value of 255 means
+completely opaque.
+
 KEYBOARD EVENTS
 ===
 
