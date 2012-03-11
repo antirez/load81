@@ -310,7 +310,7 @@ int rectBinding(lua_State *L) {
     y = lua_tonumber(L,-3);
     w = lua_tonumber(L,-2);
     h = lua_tonumber(L,-1);
-    drawBox(l81.fb,x,y,x+w,y+h,l81.r,l81.g,l81.b,l81.alpha);
+    drawBox(l81.fb,x,y,x+(w-1),y+(h-1),l81.r,l81.g,l81.b,l81.alpha);
     return 0;
 }
 
