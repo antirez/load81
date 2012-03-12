@@ -276,6 +276,68 @@ void draw(void) {
     }
 }
 
+/*  update the joystick[] table, by given field
+	e.g. joystick[1].x = 100
+	stack:
+		joystick				global
+			[1]					joynum
+				.x				field
+					= 100		value
+*/
+void updateJoystickState(int joynum, char *field, int value)
+{
+	lua_getglobal(l81.L, "joystick");
+
+    if (lua_isnil(l81.L,-1)) {
+        lua_pop(l81.L,1);
+        lua_newtable(l81.L);
+        lua_setglobal(l81.L,"joystick");
+        lua_getglobal(l81.L,"joystick");
+    }
+ 
+	if (lua_istable(l81.L, -1)) {
+		lua_pushnumber(l81.L, joynum);
+		lua_gettable(l81.L, -2);
+		lua_pushstring(l81.L, field);
+		lua_pushnumber(l81.L, value);
+		lua_settable(l81.L, -3);
+	}
+
+	lua_pop(l81.L, 2);
+}
+
+/* 
+	update the joystick[] table, .name field
+	e.g. joystick[1].name = "nub0"
+ 	stack:
+		joystick				global
+			[1]					joynum
+				.name			field
+					= "nub0"	value
+*/
+void updateJoystickName(int joynum, const char *name)
+{
+	lua_getglobal(l81.L, "joystick");
+
+    if (lua_isnil(l81.L,-1)) {
+        lua_pop(l81.L,1);
+        lua_newtable(l81.L);
+        lua_setglobal(l81.L,"joystick");
+        lua_getglobal(l81.L,"joystick");
+    }
+ 
+	if (lua_istable(l81.L, -1)) {
+		lua_pushnumber(l81.L, joynum);
+		lua_gettable(l81.L, -2);
+		lua_pushstring(l81.L, "name");
+		lua_pushstring(l81.L, name);
+		lua_settable(l81.L, -3);
+	}
+
+	lua_pop(l81.L, 2);
+}
+
+
 /* Update the keyboard.pressed and mouse.pressed Lua table. */
 void updatePressedState(char *object, char *keyname, int pressed) {
     lua_getglobal(l81.L,object);         /* $keyboard */
@@ -306,6 +368,18 @@ void mouseMovedEvent(int x, int y, int xrel, int yrel) {
     setTableFieldNumber("mouse","yrel",-yrel);
 }
 
+void joystickXMovedEvent(int joy_num, Sint16 x) { 
+	if (joy_num < MAX_JOYSTICKS) {
+		updateJoystickState(joy_num, "x", x);
+	}
+}
+
+void joystickYMovedEvent(int joy_num, Sint16 y) { 
+	if (joy_num < MAX_JOYSTICKS) {
+		updateJoystickState(joy_num, "y", y);
+	}
+}
+ 
 void mouseButtonEvent(int button, int pressed) {
     char buttonname[32];
     
@@ -357,6 +431,16 @@ int processSdlEvents(void) {
         case SDL_MOUSEBUTTONUP:
             mouseButtonEvent(event.button.button,0);
             break;
+		case SDL_JOYAXISMOTION:  /* Handle Joystick Motion */
+   			//printf("joystick %d moved on %d axis\n", event.jaxis.which, event.jaxis.axis);
+        	if( event.jaxis.axis == 0) { /* x-axis */
+				joystickXMovedEvent(event.jaxis.which + 1, event.jaxis.value);	/* C vs. Lua offsets */
+			}
+			if( event.jaxis.axis == 1) { /* y-axis */
+				joystickYMovedEvent(event.jaxis.which + 1, event.jaxis.value);	/* C vs. Lua offsets */
+			}
+    	break;
+
         case SDL_QUIT:
             exit(0);
             break;
@@ -422,7 +506,41 @@ int loadProgram(void) {
     editorClearError();
     return 0;
 }
+ 
+void initJoysticks(frameBuffer *fb) { 
+	int cur_joy;
+ 	/* Initialize Joysticks */
+    SDL_JoystickEventState(SDL_ENABLE);
 
+	for(cur_joy=0; cur_joy < SDL_NumJoysticks(); cur_joy++ ) {
+		fb->joysticks[cur_joy] = SDL_JoystickOpen(cur_joy);
+
+		updateJoystickName(cur_joy + 1, SDL_JoystickName(cur_joy));
+#if 0
+		{
+			printf("joy %d init: %p\n", cur_joy, fb->joysticks[cur_joy]);
+			printf("Joystick name: %s\n ", SDL_JoystickName(cur_joy));
+			printf("Axis: %d\nt", SDL_JoystickNumAxes(fb->joysticks[cur_joy]));
+			printf("Trackballs:%d\n", SDL_JoystickNumBalls(fb->joysticks[cur_joy]));
+			printf("Hats: %d\n", SDL_JoystickNumHats(fb->joysticks[cur_joy]));
+			printf("Buttons: %d\n", SDL_JoystickNumButtons(fb->joysticks[cur_joy]));
+        }
+#endif
+
+   }
+}
+
+/*
+ Close joysticks.
+*/
+void closeJoysticks(frameBuffer *fb) {
+	int cur_joy;
+    for(cur_joy=0; cur_joy < SDL_NumJoysticks(); cur_joy++) {
+ 		if (fb->joysticks[cur_joy])
+			SDL_JoystickClose( fb->joysticks[cur_joy]);
+    }
+}
+ 
 void initScreen(void) {
     l81.fb = createFrameBuffer(l81.width,l81.height,
                                l81.bpp,l81.opt_full_screen);
@@ -430,8 +548,14 @@ void initScreen(void) {
 
 void resetProgram(void) {
     char *initscript =
-        "keyboard={}; keyboard['pressed']={};"
-        "mouse={}; mouse['pressed']={};";
+        "keyboard={}; keyboard['pressed']={};" \
+        "mouse={}; mouse['pressed']={};" \
+		"joystick={};" \
+		"joystick[1]={x=0;y=0;name='none'};" \
+		"joystick[2]={x=0;y=0;name='none'};" \
+		"joystick[3]={x=0;y=0;name='none'};" \
+		"joystick[4]={x=0;y=0;name='none'};";
+		/* !J! should set joystick[] from MAX_JOYSTICKS */
 
     l81.epoch = 0;
     if (l81.L) lua_close(l81.L);
@@ -443,6 +567,7 @@ void resetProgram(void) {
     luaopen_debug(l81.L);
     setNumber("WIDTH",l81.width);
     setNumber("HEIGHT",l81.height);
+	setNumber("JOYSTICKS", SDL_NumJoysticks());
     luaL_loadbuffer(l81.L,initscript,strlen(initscript),"initscript");
     lua_pcall(l81.L,0,0,0);
 
@@ -453,6 +578,10 @@ void resetProgram(void) {
     setTableFieldNumber("mouse","xrel",0);
     setTableFieldNumber("mouse","yrel",0);
 
+	closeJoysticks(l81.fb);
+
+	initJoysticks(l81.fb);
+ 
     /* Register API */
     lua_pushcfunction(l81.L,fillBinding);
     lua_setglobal(l81.L,"fill");
@@ -552,5 +681,6 @@ int main(int argc, char **argv) {
         }
         editorRun();
     }
+	closeJoysticks(l81.fb);
     return 0;
 }

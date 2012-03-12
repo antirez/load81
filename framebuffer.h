@@ -9,11 +9,14 @@
 #define FONT_HEIGHT 16
 #define FONT_KERNING 10
 
+#define MAX_JOYSTICKS 4
+
 typedef struct frameBuffer {
     int width;
     int height;
-    SDL_Surface *screen;
     FPSmanager fps_mgr;
+    SDL_Surface *screen;
+    SDL_Joystick *joysticks[MAX_JOYSTICKS];
 } frameBuffer;
 
 frameBuffer *createFrameBuffer(int width, int height, int bpp, int fullscreen);
