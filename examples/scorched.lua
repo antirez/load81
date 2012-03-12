@@ -7,12 +7,13 @@
 --
 -- TODO Collide bullets directly with players.
 -- TODO Fall damage.
--- TODO Wind.
 
 NUM_PLAYERS = 3
 G = 0.1 -- Acceleration due to gravity (pixels/frame).
 MAX_POWER = 300
 STATUS_HEIGHT = 75
+MAX_WIND = 2
+BULLET_DRAG = 0.002
 
 function setup()
     ticks = 0
@@ -21,6 +22,7 @@ function setup()
     setup_players()
     setup_bullets()
     setup_explosions()
+    setup_wind()
 end
 
 -- Generate terrain by adding random sine waves.
@@ -99,6 +101,10 @@ function setup_explosions()
     explosions = {}
 end
 
+function setup_wind()
+    wind = (math.random()*2-1)*MAX_WIND
+end
+
 -- If there is only one live player left return its index. Otherwise return nil.
 function find_victor()
     local winner_index = nil
@@ -127,6 +133,7 @@ function draw()
     draw_bullets()
     draw_explosions()
     draw_status()
+    draw_wind()
     if game_over then
         if live_players == 1 then
             local winning_player_index = find_victor()
@@ -178,12 +185,21 @@ function fire()
     bullets_in_flight = bullets_in_flight + 1
 end
 
+-- Drag increases with the square of the difference in velocity between
+-- the object and the air. Returns the acceleration due to drag.
+function bullet_drag(v)
+    local a = v^2 * BULLET_DRAG
+    if v > 0 then a = -a end -- Oppose velocity.
+    return a
+end
+
 -- Do bullet physics and check for collisions with terrain or the sides of the screen.
 function tick_bullets()
     for i, bullet in pairs(bullets) do
         bullet.x = bullet.x + bullet.vx
         bullet.y = bullet.y + bullet.vy
-        bullet.vy = bullet.vy - G
+        bullet.vx = bullet.vx + bullet_drag(bullet.vx-wind)
+        bullet.vy = bullet.vy + bullet_drag(bullet.vy) - G
         local ix = math.floor(bullet.x+0.5)
         if ix < 0 or ix >= WIDTH then
             bullets[i] = nil
@@ -322,4 +338,20 @@ function draw_status()
         fill(150, 150, 150, 1)
         line(x-padding/2, HEIGHT-1, x-padding/2, HEIGHT-STATUS_HEIGHT)
     end
+end
+
+function draw_wind()
+    fill(79, 64, 19, 1)
+    local scale = 100
+    local cx = WIDTH/2
+    local wx = cx + wind*scale/MAX_WIND
+    local wy = 30
+    text(cx-20, wy-20, "wind")
+    line(cx, wy+3, cx, wy-3)
+    local dir = wind > 0 and 1 or -1
+    local wsx = cx+scale*dir
+    line(wsx, wy+3, wsx, wy-3)
+    line(cx, wy, wx, wy)
+    line(wx, wy, wx-3*dir, wy-3)
+    line(wx, wy, wx-3*dir, wy+3)
 end
