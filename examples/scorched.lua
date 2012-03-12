@@ -247,6 +247,13 @@ function draw_terrain()
     for i = 0, WIDTH-1 do
         line(i, 0, i, terrain[i])
     end
+
+    -- Antialias top of the terrain
+    fill(20, 150, 20, 0.2)
+    for i = 2, WIDTH-1 do
+        line(i-2, terrain[i-2]+1, i, terrain[i]+1)
+        line(i-1, terrain[i-1]+1, i, terrain[i]+1)
+    end
 end
 
 function draw_players()
