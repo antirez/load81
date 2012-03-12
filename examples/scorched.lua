@@ -244,9 +244,10 @@ end
 
 function draw_sky()
     local top = HEIGHT-STATUS_HEIGHT-1
+    local alpha = bullets_in_flight > 0 and 0.5 or 1
     for i = 0, top do
         local f = (1-(i/top))
-        fill(30*f, 30*f, 200*f, 1)
+        fill(30*f, 30*f, 200*f, alpha)
         line(0, i, WIDTH-1, i)
     end
 end
