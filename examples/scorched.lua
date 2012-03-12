@@ -121,6 +121,7 @@ function draw()
         handle_input()
         tick_bullets()
     end
+    draw_sky()
     draw_terrain()
     draw_players()
     draw_bullets()
@@ -241,8 +242,16 @@ function after_bullet_collision()
     end
 end
 
+function draw_sky()
+    local top = HEIGHT-STATUS_HEIGHT-1
+    for i = 0, top do
+        local f = (1-(i/top))
+        fill(30*f, 30*f, 200*f, 1)
+        line(0, i, WIDTH-1, i)
+    end
+end
+
 function draw_terrain()
-    background(30, 30, 200)
     fill(20, 150, 20, 1.0)
     for i = 0, WIDTH-1 do
         line(i, 0, i, terrain[i])
