@@ -135,6 +135,7 @@ function draw()
     draw_status()
     draw_wind()
     if game_over then
+        fill(230, 230, 230, 1)
         if live_players == 1 then
             local winning_player_index = find_victor()
             local str = string.format("Player %d wins!", winning_player_index)
