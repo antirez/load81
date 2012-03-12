@@ -283,8 +283,8 @@ function draw_bullets()
     for i, bullet in pairs(bullets) do
         local maxy = HEIGHT-STATUS_HEIGHT
         if (bullet.y < maxy) then
-            fill(255, 255, 255, 1.0)
-            rect(bullet.x, bullet.y, 1, 1)
+            fill(200, 200, 200, 1.0)
+            rect(bullet.x, bullet.y, 2, 2)
         else
             fill(200, 200, 200, 1.0)
             local l = 5
