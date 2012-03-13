@@ -4,6 +4,125 @@
 
 static struct editorConfig E;
 
+/* ====================== Syntax highlight color scheme  ==================== */
+
+static hlcolor hlscheme[] = {
+    HL_NORMAL_COLOR,
+    HL_ERROR_COLOR,
+    HL_COMMENT_COLOR,
+    HL_KEYWORD_COLOR,
+    HL_STRING_COLOR,
+    HL_NUMBER_COLOR,
+    HL_FUNCDEF_COLOR,
+    HL_LIB_COLOR
+};
+
+int is_separator(int c) {
+    return c == '\0' || isspace(c) || strchr(",.()+-/*=~%[];",c) != NULL;
+}
+
+/* Set every byte of row->hl (that corresponds to every character in the line)
+ * to the right syntax highlight type (HL_* defines). */
+void editorUpdateSyntax(erow *row) {
+    int i, prev_sep, in_string;
+    char *p;
+    char *keywords[] = {
+        /* Keywords */
+        "function","if","while","for","end","in","do","local","break",
+        "then","pairs","return",
+        /* Libs (ending with dots) will be marked as HL_LIB */
+        "math.","table.","string.","mouse.","keyboard.",NULL
+    };
+
+    row->hl = realloc(row->hl,row->size);
+    memset(row->hl,HL_NORMAL,row->size);
+
+    /* Point to the first non-space char. */
+    p = row->chars;
+    i = 0; /* Current char offset */
+    while(*p && isspace(*p)) {
+        p++;
+        i++;
+    }
+    prev_sep = 1; /* Tell the parser if 'i' points to start of word. */
+    in_string = 0; /* Are we inside "" or '' ? */
+    while(*p) {
+        if (prev_sep && *p == '-' && *(p+1) == '-') {
+            /* From here to end is a comment */
+            memset(row->hl+i,HL_COMMENT,row->size-i);
+            return;
+        }
+        /* Handle "" and '' */
+        if (in_string) {
+            row->hl[i] = HL_STRING;
+            if (*p == '\\') {
+                row->hl[i+1] = HL_STRING;
+                p += 2; i += 2;
+                prev_sep = 0;
+                continue;
+            }
+            if (*p == in_string) in_string = 0;
+            p++; i++;
+            continue;
+        } else {
+            if (*p == '"' || *p == '\'') {
+                in_string = *p;
+                row->hl[i] = HL_STRING;
+                p++; i++;
+                prev_sep = 0;
+                continue;
+            }
+        }
+        /* Handle numbers */
+        if ((isnumber(*p) && (prev_sep || row->hl[i-1] == HL_NUMBER)) ||
+            (*p == '.' && i >0 && row->hl[i-1] == HL_NUMBER)) {
+            row->hl[i] = HL_NUMBER;
+            p++; i++;
+            prev_sep = 0;
+            continue;
+        }
+
+        /* Handle keywords and lib calls */
+        if (prev_sep) {
+            int j;
+            for (j = 0; keywords[j]; j++) {
+                int klen = strlen(keywords[j]);
+                int lib = keywords[j][klen-1] == '.';
+
+                if (!lib && !memcmp(p,keywords[j],klen) &&
+                    is_separator(*(p+klen)))
+                {
+                    /* Keyword */
+                    memset(row->hl+i,HL_KEYWORD,klen);
+                    p += klen;
+                    i += klen;
+                    break;
+                }
+                if (lib && !memcmp(p,keywords[j],klen)) {
+                    /* Library call */
+                    memset(row->hl+i,HL_LIB,klen);
+                    p += klen;
+                    i += klen;
+                    while(!is_separator(*p)) {
+                        row->hl[i] = HL_LIB;
+                        p++;
+                        i++;
+                    }
+                    break;
+                }
+            }
+            if (keywords[j] != NULL) {
+                prev_sep = 0;
+                continue; /* We had a keyword match */
+            }
+        }
+
+        /* Not special chars */
+        prev_sep = is_separator(*p);
+        p++; i++;
+    }
+}
+
 /* ======================= Editor rows implementation ======================= */
 
 /* Insert a row at the specified position, shifting the other rows on the bottom
@@ -15,14 +134,26 @@ void editorInsertRow(int at, char *s) {
         memmove(E.row+at+1,E.row+at,sizeof(E.row[0])*(E.numrows-at));
     E.row[at].size = strlen(s);
     E.row[at].chars = strdup(s);
+    E.row[at].hl = NULL;
+    editorUpdateSyntax(E.row+at);
     E.numrows++;
     E.dirty++;
+}
+
+/* Free row's heap allocated stuff. */
+void editorFreeRow(erow *row) {
+    free(row->chars);
+    free(row->hl);
 }
 
 /* Remove the row at the specified position, shifting the remainign on the
  * top. */
 void editorDelRow(int at) {
+    erow *row;
+
     if (at >= E.numrows) return;
+    row = E.row+at;
+    editorFreeRow(row);
     memmove(E.row+at,E.row+at+1,sizeof(E.row[0])*(E.numrows-at-1));
     E.numrows--;
     E.dirty++;
@@ -74,6 +205,7 @@ void editorRowInsertChar(erow *row, int at, int c) {
         row->size++;
     }
     row->chars[at] = c;
+    editorUpdateSyntax(row);
     E.dirty++;
 }
 
@@ -85,12 +217,14 @@ void editorRowAppendString(erow *row, char *s) {
     memcpy(row->chars+row->size,s,l);
     row->size += l;
     row->chars[row->size] = '\0';
+    editorUpdateSyntax(row);
     E.dirty++;
 }
 
 void editorRowDelChar(erow *row, int at) {
     if (row->size <= at) return;
     memmove(row->chars+at,row->chars+at+1,row->size-at);
+    editorUpdateSyntax(row);
     row->size--;
     E.dirty++;
 }
@@ -140,6 +274,7 @@ void editorInsertNewline(void) {
         row = &E.row[filerow];
         row->chars[filecol] = '\0';
         row->size = filecol;
+        editorUpdateSyntax(row);
     }
 fixcursor:
     if (E.cy == E.screenrows-1) {
@@ -163,6 +298,7 @@ void editorDelChar() {
         filecol = E.row[filerow-1].size;
         editorRowAppendString(&E.row[filerow-1],row->chars);
         editorDelRow(filerow);
+        row = NULL;
         if (E.cy == 0)
             E.rowoff--;
         else
@@ -180,6 +316,7 @@ void editorDelChar() {
         else
             E.cx--;
     }
+    if (row) editorUpdateSyntax(row);
     E.dirty++;
 }
 
@@ -241,19 +378,6 @@ void editorDrawCursor(void) {
     E.cblink += 4;
 }
 
-#define LINE_TYPE_NORMAL 0
-#define LINE_TYPE_COMMENT 1
-#define LINE_TYPE_ERROR 2
-
-int editorLineType(erow *row, int filerow) {
-    char *p = row->chars;
-
-    if (E.err && E.errline == filerow) return LINE_TYPE_ERROR;
-    while(*p == ' ') p++;
-    if (*p == '-' && *(p+1) == '-') return LINE_TYPE_COMMENT;
-    return LINE_TYPE_NORMAL;
-}
-
 void editorDrawChars(void) {
     int y,x;
     erow *r;
@@ -273,18 +397,14 @@ void editorDrawChars(void) {
         for (x = 0; x < E.screencols; x++) {
             int idx = x+E.coloff;
             int charx;
-            int tr,tg,tb;
-            int line_type = editorLineType(r,filerow);
+            hlcolor *color;
 
             if (idx >= r->size) break;
             charx = x*FONT_KERNING;
             charx += E.margin_left;
-            switch(line_type) {
-            case LINE_TYPE_ERROR: tr = 255; tg = 100, tb = 100; break;
-            case LINE_TYPE_COMMENT: tr = 180, tg = 180, tb = 0; break;
-            default: tr = 165; tg = 165, tb = 255; break;
-            }
-            bfWriteChar(E.fb,charx,chary,r->chars[idx],tr,tg,tb,255);
+            color = hlscheme+r->hl[idx];
+            bfWriteChar(E.fb,charx,chary,r->chars[idx],
+                        color->r,color->g,color->b,255);
         }
     }
     if (E.err)
@@ -372,7 +492,6 @@ void editorMouseClicked(int x, int y, int button) {
                 E.cx = filecol-E.coloff;
             E.cy = filerow-E.rowoff;
         }
-        printf("row:%p filerow:%d filecol:%d\n", (void*)r, filerow, filecol);
     }
 }
 
