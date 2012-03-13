@@ -536,9 +536,12 @@ void initJoysticks(frameBuffer *fb) {
 void closeJoysticks(frameBuffer *fb) {
 	int cur_joy;
     for(cur_joy=0; cur_joy < SDL_NumJoysticks(); cur_joy++) {
- 		if (fb->joysticks[cur_joy])
+ 		if (fb->joysticks[cur_joy]) {
 			SDL_JoystickClose( fb->joysticks[cur_joy]);
+         	updateJoystickName(cur_joy + 1, "none");
+		}
     }
+	setNumber("JOYSTICKS", 0);
 }
  
 void initScreen(void) {
