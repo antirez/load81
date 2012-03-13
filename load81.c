@@ -578,8 +578,6 @@ void resetProgram(void) {
     setTableFieldNumber("mouse","xrel",0);
     setTableFieldNumber("mouse","yrel",0);
 
-	closeJoysticks(l81.fb);
-
 	initJoysticks(l81.fb);
  
     /* Register API */

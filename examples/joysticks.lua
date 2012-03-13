@@ -16,6 +16,11 @@ end
 function draw()
     fill (0,255,0,1);
     background(0,0,0,0);
+
+    if JOYSTICKS == 0 then
+    	text(10, cell_size, string.format("No joysticks detected .. plug one in!"));
+	end
+
     for jn = 1, JOYSTICKS, 1 do
         draw_joystick_info(jn);
     end 
