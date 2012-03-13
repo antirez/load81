@@ -165,9 +165,21 @@ function handle_input()
         fire()
         last_fire_tick = ticks
     end
+    if keyboard.pressed['return'] and
+       bullets_in_flight == 0 and
+       last_fire_tick < ticks - 16 then
+        fire_secret()
+        last_fire_tick = ticks
+    end
 end
 
 local next_bullet_id = 1
+function add_bullet(bullet)
+    bullets[next_bullet_id] = bullet
+    next_bullet_id = next_bullet_id + 1
+    bullets_in_flight = bullets_in_flight + 1
+end
+
 function fire()
     local player = current_player
     local a = math.rad(player.angle)
@@ -181,9 +193,25 @@ function fire()
         exp_radius = 30,
         exp_damage = 50,
     }
-    bullets[next_bullet_id] = bullet
-    next_bullet_id = next_bullet_id + 1
-    bullets_in_flight = bullets_in_flight + 1
+    add_bullet(bullet)
+end
+
+function fire_secret()
+    local player = current_player
+    local speed = player.power/10
+    for i = 1,10 do
+        local a = math.rad(player.angle) + math.random()*0.05-0.1
+        local bullet = {
+            player = player,
+            x = player.x,
+            y = player.y,
+            vx = math.cos(a)*speed,
+            vy = math.sin(a)*speed,
+            exp_radius = 10,
+            exp_damage = 40,
+        }
+        add_bullet(bullet)
+    end
 end
 
 -- Drag increases with the square of the difference in velocity between
