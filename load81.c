@@ -372,7 +372,10 @@ int processSdlEvents(void) {
     }
 
     /* Call the setup function, only the first time. */
-    if (l81.epoch == 0) setup();
+    if (l81.epoch == 0) {
+        setup();
+        if (l81.luaerr) return l81.luaerr;
+    }
     /* Call the draw function at every iteration.  */
     draw();
     l81.epoch++;
