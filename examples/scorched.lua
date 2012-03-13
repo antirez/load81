@@ -219,7 +219,7 @@ end
 -- Find the players in the damage radius of an explosion and reduce their health.
 function damage_players(x, y, r, s)
     for i, player in ipairs(players) do
-        local d = math.sqrt((player.x-x)^2, (player.y-y)^2)
+        local d = math.sqrt((player.x-x)^2 + (player.y-y)^2)
         if player.health > 0 and d < r then
             -- Damage attenuates linearly with distance (in 2d).
             local e = s*(1-(d/r))
