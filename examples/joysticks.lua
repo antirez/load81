@@ -2,9 +2,16 @@
 -- simple demo of joystick input
 -- by torpor (seclorum@me.com)
 --
+-- the joystick[] table is global, and contains .x/.y/.name fields
+-- describing the joystick.  the JOYSTICK global contains the
+-- number of physical joysticks detected by LOAD81 at startup.
+--
+-- the maximum number of joysticks available is 4.
+--
 
--- each joystick has its own color, since there are four joysticks
--- maximum available then we have four unique colors
+-- each joystick will have its own color, and since there 
+-- a maximum of 4 joysticks available then we have 4
+-- unique colors to use
 colors = {}
 colors = {
 {r=255,g=0,b=255,a=1},
