@@ -1,5 +1,6 @@
 --
 -- simple demo of joystick input
+-- by torpor (seclorum@me.com)
 --
 
 colors = {}
