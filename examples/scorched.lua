@@ -25,25 +25,57 @@ function setup()
     setup_wind()
 end
 
--- Generate terrain by adding random sine waves.
+-- Generate terrain using the midpoint displacement algorithm.
 function setup_terrain()
-    terrain = {}
-    local freqs = {}
-    local amplitudes = {}
-    local offsets = {}
-    local nwaves = 100
-    local max_amplitude = 30
-    for i = 1, nwaves do
-        freqs[i] = math.random()*0.1 + 0.01
-        amplitudes[i] = math.random() * (max_amplitude*(i/nwaves))
-        offsets[i] = math.random()*WIDTH
-    end
-    for x = 0, WIDTH-1 do
-        local h = HEIGHT/3
-        for i = 1, nwaves do
-            h = h + math.sin(x*freqs[i] + offsets[i])*amplitudes[i]
+    -- Tunables.
+    local initial_height = 200
+    local max_displacement = 100
+    local displacement_growth = 0.92
+    local iterations = 1000
+
+    -- x0 and width must be integers.
+    local lines = { { x0=0, width=400, slope=0.2 }, { x0=400, width=400, slope=-0.2 } }
+
+    -- For each iteration, pick a random line and split it in two. Move the
+    -- middle point up or down by a random amount. The maximum amount it can
+    -- be moved decreases with each iteration.
+    local y0 = initial_height
+    for i = 1, iterations do
+        local j = math.random(1, #lines)
+        local lA = lines[j]
+        local y1 = y0 + lA.width*lA.slope
+        local widthA = math.ceil(lA.width/2)
+        local widthB = math.floor(lA.width/2)
+        if widthB == 0 then
+            -- skip
+        else
+            local midy = y0+lA.width*lA.slope/2
+            local dy = (math.random()*2-1)*max_displacement
+            -- y = y0 + slope*x
+            -- slope = (y-y0)/x
+            local slopeA = (midy+dy-y0)/widthA
+            local slopeB = (y1-midy-dy)/widthB
+            local lB = { x0=lA.x0+widthA, width=widthB, slope=slopeB }
+            table.insert(lines, lB)
+            lA.width = widthA
+            lA.slope = slopeA
+            max_displacement = max_displacement * displacement_growth
         end
-        terrain[x] = h
+        y0 = y1
+    end
+
+    -- Sort the lines by x0.
+    table.sort(lines, function(a,b) return a.x0 < b.x0 end)
+
+    -- Build the terrain height-map from the lines.
+    terrain = {}
+    local y0 = initial_height
+    for i = 1, #lines do
+        local l = lines[i]
+        for x = l.x0, (l.x0+l.width-1) do
+            terrain[x] = y0 + (x-l.x0)*l.slope
+        end
+        y0 = y0 + l.width*l.slope
     end
 end
 
