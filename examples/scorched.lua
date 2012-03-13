@@ -206,9 +206,10 @@ function tick_bullets()
             bullets[i] = nil
             after_bullet_collision()
         elseif bullet.y < terrain[ix] then
+            bullet.y = terrain[ix]
             explosions[i] = { x=bullet.x, y=bullet.y, r=bullet.exp_radius, ttl=20, lifetime=20 }
-            damage_players(bullet.x, terrain[ix], bullet.exp_radius, bullet.exp_damage)
-            deform_terrain(ix, math.floor(terrain[ix]), bullet.exp_radius)
+            damage_players(bullet.x, bullet.y, bullet.exp_radius, bullet.exp_damage)
+            deform_terrain(ix, bullet.y, bullet.exp_radius)
             bullets[i] = nil
             after_bullet_collision()
         end
