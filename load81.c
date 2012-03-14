@@ -303,7 +303,7 @@ void updateJoystickState(int joynum, char *field, int value)
         lua_settable(l81.L, -3);
     }
 
-    lua_pop(l81.L, 2);
+    lua_pop(l81.L, 3);
 }
 
 /* 
@@ -334,7 +334,7 @@ void updateJoystickName(int joynum, const char *name)
         lua_settable(l81.L, -3);
     }
 
-    lua_pop(l81.L, 2);
+    lua_pop(l81.L, 3);
 }
 
 
