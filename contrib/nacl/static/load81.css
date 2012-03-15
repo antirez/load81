@@ -1,20 +1,25 @@
 body {
-  margin: 0;
-  padding: 0;
+	margin: 0;
+	padding: 0;
+	background-color: #B2B0B0;
 }
 
 #nacl_module {
 	position: absolute;
 	opacity: 0.0;
-	left: 0px;
-	top: 0px;
+	left: 50%;
+	top: 50%;
 	width: 800px;
 	height: 600px;
+	margin-left: -400px;
+	margin-top: -300px;
 	z-index: 50;
+	border: solid 1px black;
+	box-shadow: 3px 3px 2px #808080;
 }
 
 #status {
-position: absolute;
+	position: absolute;
 	left: 50%;
 	top: 50%;
 	width: 300px;
