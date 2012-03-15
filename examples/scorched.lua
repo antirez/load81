@@ -159,6 +159,7 @@ function draw()
         handle_input()
         tick_bullets()
     end
+        
     draw_sky()
     draw_terrain()
     draw_players()
@@ -166,6 +167,7 @@ function draw()
     draw_explosions()
     draw_status()
     draw_wind()
+
     if game_over then
         fill(230, 230, 230, 1)
         if live_players == 1 then
@@ -175,6 +177,13 @@ function draw()
         else
             text(WIDTH/2-5*5, HEIGHT/2, "Draw!")
         end
+    end
+
+    if ticks < 30*3 then
+        local function centerText(y, str) text(WIDTH/2-str:len()*5, y, str) end
+        fill(200, 200, 200, 1-ticks/90)
+        centerText(460, "Use the arrow keys to control your tank's gun.")
+        centerText(445, "Press the space key to fire.")
     end
 end
 
