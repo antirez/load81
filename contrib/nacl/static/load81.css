@@ -1,0 +1,29 @@
+body {
+  margin: 0;
+  padding: 0;
+}
+
+#nacl_module {
+	position: absolute;
+	opacity: 0.0;
+	left: 0px;
+	top: 0px;
+	width: 800px;
+	height: 600px;
+	z-index: 50;
+}
+
+#status {
+position: absolute;
+	left: 50%;
+	top: 50%;
+	width: 300px;
+	margin-left: -150px;
+	margin-top: -20px;
+	z-index: 100;
+	text-align: center;
+	background-color: rgba(100, 100, 100, 1);
+	border: solid 1px black;
+	padding: 4px;
+	color: black;
+}

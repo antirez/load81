@@ -1,6 +1,0 @@
-{
-  "program": {
-    "x86-64": {"url": "load81-x86_64-nacl.nexe"},
-    "x86-32": {"url": "load81-i686-nacl.nexe"}
-  }
-}
