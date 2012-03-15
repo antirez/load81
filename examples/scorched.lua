@@ -331,16 +331,20 @@ function draw_sky()
 end
 
 function draw_terrain()
-    fill(36, 142, 36, 1.0)
     for i = 0, WIDTH-1 do
-        line(i, 0, i, terrain[i])
-    end
+        local h = terrain[i]
 
-    -- Antialias top of the terrain
-    fill(36, 142, 36, 0.2)
-    for i = 2, WIDTH-1 do
-        line(i-2, terrain[i-2]+1, i, terrain[i]+1)
-        line(i-1, terrain[i-1]+1, i, terrain[i]+1)
+        -- Draw a vertical line from the bottom
+        fill(36, 142, 36, 1.0)
+        line(i, 0, i, math.floor(h))
+
+        -- Antialias by drawing a point with transparency equal to the
+        -- fraction of a pixel that was ignored above.
+        local frac = h-math.floor(h)
+        if frac > 0 then
+            fill(36, 142, 36, frac)
+            rect(i, math.ceil(h), 1, 1)
+        end
     end
 end
 
