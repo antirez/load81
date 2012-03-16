@@ -8,7 +8,7 @@ SDL_Surface *sdlInit(int width, int height, int bpp, int fullscreen) {
     SDL_Surface *screen;
 
     if (fullscreen) flags |= SDL_FULLSCREEN;
-    if (SDL_Init(SDL_INIT_VIDEO) == -1) {
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK) == -1) {
         fprintf(stderr, "SDL Init error: %s\n", SDL_GetError());
         return NULL;
     }
@@ -22,6 +22,7 @@ SDL_Surface *sdlInit(int width, int height, int bpp, int fullscreen) {
      * keys are translated into characters with automatic support for modifiers
      * (for instance shift modifier to print capital letters and symbols). */
     SDL_EnableUNICODE(SDL_ENABLE);
+
     return screen;
 }
 
@@ -34,6 +35,7 @@ frameBuffer *createFrameBuffer(int width, int height, int bpp, int fullscreen) {
     SDL_initFramerate(&fb->fps_mgr);
     /* Load the bitmap font */
     bfLoadFont((char**)BitmapFont);
+
     return fb;
 }
 
