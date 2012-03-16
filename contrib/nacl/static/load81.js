@@ -1,4 +1,11 @@
 $(document).ready(function(){
+	function switch_screen(id) {
+		$(".screen").css({ "z-index": 50 });
+		$(".screen").animate({ opacity:0.0 }, { queue: false, duration: "slow" });
+		$("#"+id).css({ "z-index": 60 });
+		$("#"+id).animate({ opacity:1.0 }, { queue: false, duration: "slow" });
+	}
+
 	/*
 	 * Native Client events
 	 */
@@ -29,7 +36,7 @@ $(document).ready(function(){
 			$("#status").html(lastError)
 		} else {
 			$("#status").fadeOut("slow")
-			$("#nacl_module").animate({ opacity:1.0 }, { queue: false, duration: "slow" })
+			switch_screen("play-screen");
 		}
 	}
 
@@ -37,7 +44,7 @@ $(document).ready(function(){
 		console.log(message_event.data);
 	}
 
-	var listener = document.getElementById('listener')
+	var listener = document.getElementById('play-screen')
 	listener.addEventListener('loadstart', moduleDidStartLoad, true);
 	listener.addEventListener('progress', moduleLoadProgress, true);
 	listener.addEventListener('error', moduleLoadError, true);
@@ -51,9 +58,13 @@ $(document).ready(function(){
 	 * Menu buttons
 	 */
 
+	$("#play").click(function(event) {
+		switch_screen("play-screen");
+		document.getElementById('nacl_module').focus();
+	});
+
 	$("#help").click(function(event) {
-		// TODO
-		alert("help!");
+		switch_screen("help-screen");
 	});
 
 	$("#load").click(function(event) {

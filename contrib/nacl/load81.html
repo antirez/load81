@@ -15,17 +15,24 @@
 <body>
 
 <div id="menu">
+    <div id="play">Play</div>
     <div id="help">Help</div>
     <div id="load">Load</div>
     <div id="save">Save</div>
 </div>
 
-<div id="listener">
+<div id="play-screen" class="screen">
     <embed name="nacl_module"
            id="nacl_module"
            src="static/load81.nmf"
            type="application/x-nacl"
            tabindex="-1" />
+</div>
+
+<div id="help-screen" class="screen">
+<div id="help-container">
+<h1>Welcome to Load81</h1>
+</div>
 </div>
 
 <div id="status">Loading: 0%</div>
