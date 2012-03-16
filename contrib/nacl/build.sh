@@ -14,7 +14,8 @@ NACL_ROOT=$(dirname $(which $0))
 ROOT=$(readlink -f $NACL_ROOT/../..)
 PKGS="sdl SDL_gfx"
 
-ln -sf $ROOT/examples $NACL_ROOT/examples
+rm -f $NACL_ROOT/examples
+ln -s $ROOT/examples $NACL_ROOT/examples
 
 for HOST in i686-nacl x86_64-nacl
 do
