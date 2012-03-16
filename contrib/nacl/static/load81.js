@@ -37,7 +37,8 @@ $(document).ready(function(){
 		e.id = "nacl_module";
 		e.name = "nacl_module";
 		e.src = "static/load81.nmf";
-		e.type="application/x-nacl";
+		e.type = "application/x-nacl";
+		e.tabIndex = -1;
 		$("#play-screen").append(e);
 		nacl_module = e;
 		src = _src;
