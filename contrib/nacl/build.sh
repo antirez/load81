@@ -1,5 +1,5 @@
 #!/bin/sh
-# TODO use the common Makfile instead of duplicating it.
+# TODO use the common Makefile instead of duplicating it.
 set -ex
 
 if [ -z $NACL_SDK_ROOT ]
@@ -13,7 +13,8 @@ TOOLCHAIN=$NACL_SDK_ROOT/toolchain/linux_x86_newlib
 NACL_ROOT=$(dirname $(which $0))
 ROOT=$(readlink -f $NACL_ROOT/../..)
 PKGS="sdl SDL_gfx"
-EXAMPLE=asteroids.lua
+
+ln -sf $ROOT/examples $NACL_ROOT/examples
 
 for HOST in i686-nacl x86_64-nacl
 do
@@ -26,18 +27,14 @@ do
     else
         BFDNAME=elf64-nacl
     fi
-    cp $ROOT/examples/$EXAMPLE example.lua
-    $HOST-objcopy -I binary -O $BFDNAME -B $BFDARCH example.lua example.o
-    rm example.lua
     CFLAGS="-O2 -Wall -W -D main=load81_main `pkg-config --cflags $PKGS`"
     LDFLAGS=""
     for X in read write open close seek mount; do
         LDFLAGS="$LDFLAGS -Xlinker --wrap -Xlinker $X"
     done
     LIBS="`pkg-config --libs $PKGS` -llua -lm -lppapi -lppapi_cpp -lnacl-mounts -lstdc++ -lnosys"
-    SRCS="$ROOT/load81.c $ROOT/editor.c $ROOT/framebuffer.c nacl.cc example.o"
+    SRCS="$ROOT/load81.c $ROOT/editor.c $ROOT/framebuffer.c nacl.cc"
     $CC $CFLAGS $LDFLAGS $SRCS $LIBS -o load81-$HOST.nexe
-    rm example.o
     $HOST-strip load81-$HOST.nexe
 done
 

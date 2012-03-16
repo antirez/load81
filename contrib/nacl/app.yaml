@@ -10,6 +10,8 @@ handlers:
   upload: load81.html
 - url: /static
   static_dir: static
+- url: /examples
+  static_dir: examples
 - url: /load81-i686-nacl.nexe
   static_files: load81-i686-nacl.nexe
   upload: load81-i686-nacl.nexe

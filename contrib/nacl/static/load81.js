@@ -1,11 +1,17 @@
-demo_src = 'function draw() background(100, 50, 50) end'
+var initial_script = "examples/asteroids.lua";
 
 $(document).ready(function(){
 	var nacl_module = null;
 	var src = null;
 
 	function main() {
-		start_game(demo_src);
+		xhr = new XMLHttpRequest();
+		xhr.open("GET", initial_script);
+		xhr.onload = function (event) {
+			// TODO check for failure
+			start_game(xhr.responseText);
+		}
+		xhr.send();
 	}
 
 	function switch_screen(id) {
