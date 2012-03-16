@@ -1,4 +1,8 @@
 $(document).ready(function(){
+	/*
+	 * Native Client events
+	 */
+
 	function moduleDidStartLoad() {
 	}
 
@@ -41,4 +45,24 @@ $(document).ready(function(){
 	listener.addEventListener('load', moduleDidLoad, true);
 	listener.addEventListener('loadend', moduleDidEndLoad, true);
 	listener.addEventListener('message', handleMessage, true);
+
+	
+	/*
+	 * Menu buttons
+	 */
+
+	$("#help").click(function(event) {
+		// TODO
+		alert("help!");
+	});
+
+	$("#load").click(function(event) {
+		// TODO
+		alert("load!");
+	});
+
+	$("#save").click(function(event) {
+		// TODO
+		alert("save!");
+	});
 });
