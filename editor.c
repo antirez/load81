@@ -21,6 +21,10 @@ int is_separator(int c) {
     return c == '\0' || isspace(c) || strchr(",.()+-/*=~%[];",c) != NULL;
 }
 
+int is_number(int c) {
+    return strchr("0123456789",c) != NULL;
+}
+
 /* Set every byte of row->hl (that corresponds to every character in the line)
  * to the right syntax highlight type (HL_* defines). */
 void editorUpdateSyntax(erow *row) {
@@ -74,7 +78,7 @@ void editorUpdateSyntax(erow *row) {
             }
         }
         /* Handle numbers */
-        if ((isnumber(*p) && (prev_sep || row->hl[i-1] == HL_NUMBER)) ||
+        if ((is_number(*p) && (prev_sep || row->hl[i-1] == HL_NUMBER)) ||
             (*p == '.' && i >0 && row->hl[i-1] == HL_NUMBER)) {
             row->hl[i] = HL_NUMBER;
             p++; i++;
