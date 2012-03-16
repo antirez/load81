@@ -9,6 +9,7 @@
 #include <ppapi/cpp/rect.h>
 #include <ppapi/cpp/size.h>
 #include <ppapi/cpp/input_event.h>
+#include <ppapi/cpp/var.h>
 #include <nacl-mounts/memory/MemMount.h>
 
 #include <SDL_video.h>
@@ -49,26 +50,36 @@ public:
         if (position.size().width() == width_ &&
             position.size().height() == height_)
             return;  // Size didn't change, no need to update anything.
-
-        if (sdl_thread_started_ == false) {
-            width_ = position.size().width();
-            height_ = position.size().height();
-
-            SDL_NACL_SetInstance(pp_instance(), width_, height_);
-            // It seems this call to SDL_Init is required. Calling from
-            // sdl_main() isn't good enough.
-            // Perhaps it must be called from the main thread?
-            int lval = SDL_Init(SDL_INIT_VIDEO);
-            assert(lval >= 0);
-            if (0 == pthread_create(&sdl_main_thread_, NULL, sdl_thread, this)) {
-                sdl_thread_started_ = true;
-            }
-        }
     }
 
     bool HandleInputEvent(const pp::InputEvent& event) {
         SDL_NACL_PushEvent(event);
         return true;
+    }
+
+    void HandleMessage(const pp::Var& message) {
+        fprintf(stderr, "HandleMessage\n");
+        std::string data = message.AsString();
+        int fd = open("program.lua", O_CREAT | O_WRONLY);
+        if (fd < 0) {
+            perror("open");
+            return;
+        }
+
+        if (write(fd, data.c_str(), data.length()) < 0) {
+            perror("write");
+            return;
+        }
+
+        if (close(fd) < 0) {
+            perror("close");
+            return;
+        }
+
+        SDL_NACL_SetInstance(pp_instance(), 800, 600);
+        int lval = SDL_Init(SDL_INIT_VIDEO);
+        assert(lval >= 0);
+        pthread_create(&sdl_main_thread_, NULL, sdl_thread, this);
     }
 
     bool Init(uint32_t argc, const char* argn[], const char* argv[]) {
@@ -80,39 +91,17 @@ public:
             throw std::runtime_error("failed to request input events");
         }
 
-        /* 
-         * The example Lua program is embedded in an object file by the NaCl build
-         * script.
-         * TODO: support loading local files.
-         */
-        int fd = open("example.lua", O_CREAT | O_WRONLY);
-        if (fd < 0) {
-            perror("open");
-            return false;
-        }
-
-        if (write(fd, _binary_example_lua_start, (int)&_binary_example_lua_size) < 0) {
-            perror("write");
-            return false;
-        }
-
-        if (close(fd) < 0) {
-            perror("close");
-            return false;
-        }
-
         return true;
     }
 
 private:
-    bool sdl_thread_started_;
     pthread_t sdl_main_thread_;
     int width_;
     int height_;
 
     static void* sdl_thread(void* param) {
         char argv0[] = "load81";
-        char argv1[] = "example.lua";
+        char argv1[] = "program.lua";
         char argv2[] = "--fps";
         char *argv[] = { argv0, argv1, argv2, NULL };
         load81_main(3, argv);

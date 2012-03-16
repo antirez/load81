@@ -37,7 +37,12 @@ body {
 	opacity: 0.0;
 	left: 50%;
 	top: 50%;
-	width: 800px;
+	padding-left: 40px;
+	padding-right: 40px;
+	padding-top: 10px;
+	padding-bottom: 10px;
+	width: 720px;
+	min-height: 580px;
 	margin-left: -400px;
 	margin-top: -300px;
 	z-index: 50;
@@ -46,21 +51,20 @@ body {
 	box-shadow: 3px 3px 2px #808080;
 }
 
-#nacl_module {
-	height: 600px;
+#play-screen {
+	padding: 0;
 	width: 800px;
-}
-
-#help-screen {
 	height: 600px;
 }
 
-#help-container {
-	padding: 10px;
+#nacl_module {
+	width: 800px;
+	height: 600px;
 }
 
 #status {
 	position: absolute;
+	display: none;
 	left: 50%;
 	top: 50%;
 	width: 300px;

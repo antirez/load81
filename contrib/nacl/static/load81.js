@@ -1,4 +1,13 @@
+demo_src = 'function draw() background(100, 50, 50) end'
+
 $(document).ready(function(){
+	var nacl_module = null;
+	var src = null;
+
+	function main() {
+		start_game(demo_src);
+	}
+
 	function switch_screen(id) {
 		$(".screen").css({ "z-index": 50 });
 		$(".screen").animate({ opacity:0.0 }, { queue: false, duration: "slow" });
@@ -6,11 +15,35 @@ $(document).ready(function(){
 		$("#"+id).animate({ opacity:1.0 }, { queue: false, duration: "slow" });
 	}
 
+	function start_game(_src) {
+		if (nacl_module) {
+			$(nacl_module).remove();
+			nacl_module = null;
+		}
+
+		nacl_html = '<embed name="nacl_module"        \
+		                    id="nacl_module"          \
+		                    src="static/load81.nmf"   \
+		                    type="application/x-nacl" \
+		                    tabindex="-1" />';
+
+		var e = document.createElement("embed");
+		e.id = "nacl_module";
+		e.name = "nacl_module";
+		e.src = "static/load81.nmf";
+		e.type="application/x-nacl";
+		$("#play-screen").append(e);
+		nacl_module = e;
+		src = _src;
+	}
+
 	/*
 	 * Native Client events
 	 */
 
 	function moduleDidStartLoad() {
+		$("#status").html("Loading...");
+		$("#status").show();
 	}
 
 	function moduleLoadProgress(event) {
@@ -27,7 +60,9 @@ $(document).ready(function(){
 	}
 
 	function moduleDidLoad() {
-		document.getElementById('nacl_module').focus();
+		nacl_module.postMessage(src);
+		switch_screen("play-screen");
+		nacl_module.focus();
 	}
 
 	function moduleDidEndLoad() {
@@ -53,14 +88,15 @@ $(document).ready(function(){
 	listener.addEventListener('loadend', moduleDidEndLoad, true);
 	listener.addEventListener('message', handleMessage, true);
 
-	
 	/*
 	 * Menu buttons
 	 */
 
 	$("#play").click(function(event) {
 		switch_screen("play-screen");
-		document.getElementById('nacl_module').focus();
+		if (nacl_module) {
+			nacl_module.focus();
+		}
 	});
 
 	$("#help").click(function(event) {
@@ -68,12 +104,30 @@ $(document).ready(function(){
 	});
 
 	$("#load").click(function(event) {
-		// TODO
-		alert("load!");
+		switch_screen("load-screen");
 	});
 
 	$("#save").click(function(event) {
 		// TODO
 		alert("save!");
 	});
+
+
+	/*
+	 * Load screen
+	 */
+
+	$("#uploader").change(function(event) {
+		var file = event.target.files[0];
+		var reader = new FileReader();
+		reader.onload = function(evt) {
+			console.log(["uploaded", evt]);
+			var code = reader.result;
+			start_game(code);
+		};  
+		reader.readAsBinaryString(file);
+	});
+
+
+	main();
 });
