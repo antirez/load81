@@ -121,6 +121,7 @@ void programError(const char *e) {
 /* =============================== Sprites ================================== */
 
 #include <SDL_image.h>
+#include <SDL_rotozoom.h>
 
 #define SPRITE_MT "l81.sprite_mt"
 
@@ -132,7 +133,7 @@ void spriteBlit(SDL_Surface *s, int x, int y)
 }
 
 /* Load sprite.  Return surface pointer and object on top of stack */
-SDL_Surface * spriteLoad(const char *filename)
+SDL_Surface *spriteLoad(const char *filename)
 {
     SDL_Surface **pps;
 
@@ -197,12 +198,21 @@ static const struct luaL_Reg sprite_m[] = {
 
 int spriteBinding(lua_State *L) {
     const char *filename;
-    int x, y;
+    int x, y, angle, argc = lua_gettop(L);
+    SDL_Surface *sprite;
 
     filename = lua_tostring(L, 1);
     x = lua_tonumber(L, 2);
     y = lua_tonumber(L, 3);
-    spriteBlit(spriteLoad(filename), x, y);
+    angle = (argc == 4) ? lua_tonumber(L,4) : 0;
+    sprite = spriteLoad(filename);
+    if (angle == 0) {
+        spriteBlit(sprite, x, y);
+    } else {
+        SDL_Surface *rot = rotozoomSurface(sprite,angle,1,1);
+        spriteBlit(rot, x, y);
+        SDL_FreeSurface(rot);
+    }
     return 1;
 }
 
