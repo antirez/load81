@@ -5,7 +5,7 @@
 * Google Chrome 15 or higher.
 * Google App Engine Python SDK.
 * Native Client SDK.
-* NaclPorts with SDL and SDL_gfx built for i686 and x86\_64.
+* NaclPorts with SDL, SDL_gfx, and SDL_image built for i686 and x86\_64.
 * NACL\_SDK\_ROOT environment variable set.
 
 ## Building
@@ -32,7 +32,3 @@ Now you need to create a Chrome application. Follow the instructions at the
 a template.
 
 [2]: http://code.google.com/chrome/apps/docs/developers_guide.html
-
-## TODO
-
-* Support loading and saving local files.

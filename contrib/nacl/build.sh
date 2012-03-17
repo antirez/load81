@@ -12,7 +12,7 @@ fi
 TOOLCHAIN=$NACL_SDK_ROOT/toolchain/linux_x86_newlib
 NACL_ROOT=$(dirname $(which $0))
 ROOT=$(readlink -f $NACL_ROOT/../..)
-PKGS="sdl SDL_gfx"
+PKGS="sdl SDL_gfx SDL_image libpng"
 
 rm -f $NACL_ROOT/examples
 ln -s $ROOT/examples $NACL_ROOT/examples
@@ -33,10 +33,9 @@ do
     for X in read write open close seek mount; do
         LDFLAGS="$LDFLAGS -Xlinker --wrap -Xlinker $X"
     done
-    LIBS="`pkg-config --libs $PKGS` -llua -lm -lppapi -lppapi_cpp -lnacl-mounts -lstdc++ -lnosys"
+    LIBS="`pkg-config --libs $PKGS` -ljpeg -lz -llua -lm -lppapi -lppapi_cpp -lnacl-mounts -lstdc++ -lnosys"
     SRCS="$ROOT/load81.c $ROOT/editor.c $ROOT/framebuffer.c nacl.cc"
     $CC $CFLAGS $LDFLAGS $SRCS $LIBS -o load81-$HOST.nexe
     $HOST-strip load81-$HOST.nexe
 done
-
 echo Built successfully
