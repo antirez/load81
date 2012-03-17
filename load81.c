@@ -118,104 +118,6 @@ void programError(const char *e) {
     l81.luaerr = 1;
 }
 
-/* =============================== Sprites ================================== */
-
-#include <SDL_image.h>
-#include <SDL_rotozoom.h>
-
-#define SPRITE_MT "l81.sprite_mt"
-
-void spriteBlit(SDL_Surface *s, int x, int y)
-{
-    if (s == NULL) return;
-    SDL_Rect dst = {x, l81.fb->height-1-y - s->h, s->w, s->h};
-    SDL_BlitSurface(s, NULL, l81.fb->screen, &dst);
-}
-
-/* Load sprite.  Return surface pointer and object on top of stack */
-SDL_Surface *spriteLoad(const char *filename)
-{
-    SDL_Surface **pps;
-
-    /* check if image was already loaded and cached */
-    lua_getglobal(l81.L, "sprites");
-    lua_getfield(l81.L, -1, filename);
-    if (lua_isnil(l81.L, -1))
-    {
-        /* load image into surface */
-        SDL_Surface *ps = IMG_Load(filename);
-        if (ps == NULL)
-        {   
-            luaL_error(l81.L, "failed to load sprite %s", filename);
-            return NULL;
-        }
-
-        /* box the surface pointer in a userdata */
-        pps = (SDL_Surface **)lua_newuserdata(l81.L, sizeof(SDL_Surface *));
-        *pps = ps;
-
-        /* set sprite metatable */
-        luaL_getmetatable(l81.L, SPRITE_MT);
-        lua_setmetatable(l81.L, -2);
-
-        /* cache loaded surface in sprite table */
-        lua_pushvalue(l81.L, -1); 
-        lua_setfield(l81.L, -4, filename);
-    }
-    else
-    {
-        /* unbox surface pointer */
-        pps = (SDL_Surface **)luaL_checkudata(l81.L, -1, SPRITE_MT);
-    }
-
-    return *pps;
-}
-
-int spriteGC(lua_State *L) {
-    SDL_Surface **pps = (SDL_Surface **)luaL_checkudata(L, 1, SPRITE_MT);
-    if (pps) SDL_FreeSurface(*pps);
-    return 0;
-}
-
-int spriteGetHeight(lua_State *L) {
-    SDL_Surface **pps = (SDL_Surface **)luaL_checkudata(L, 1, SPRITE_MT);
-    lua_pushnumber(L, (*pps)->h);
-    return 1;
-}
-
-int spriteGetWidth(lua_State *L) {
-    SDL_Surface **pps = (SDL_Surface **)luaL_checkudata(L, 1, SPRITE_MT);
-    lua_pushnumber(L, (*pps)->w);
-    return 1;
-}
-
-static const struct luaL_Reg sprite_m[] = {
-    { "__gc",      spriteGC        },
-    { "getHeight", spriteGetHeight },
-    { "getWidth",  spriteGetWidth  },
-    { NULL,        NULL            }
-};
-
-int spriteBinding(lua_State *L) {
-    const char *filename;
-    int x, y, angle, argc = lua_gettop(L);
-    SDL_Surface *sprite;
-
-    filename = lua_tostring(L, 1);
-    x = lua_tonumber(L, 2);
-    y = lua_tonumber(L, 3);
-    angle = (argc == 4) ? lua_tonumber(L,4) : 0;
-    sprite = spriteLoad(filename);
-    if (angle == 0) {
-        spriteBlit(sprite, x, y);
-    } else {
-        SDL_Surface *rot = rotozoomSurface(sprite,angle,1,1);
-        spriteBlit(rot, x, y);
-        SDL_FreeSurface(rot);
-    }
-    return 1;
-}
-
 /* ============================= Lua bindings ============================== */
 int fillBinding(lua_State *L) {
     l81.r = lua_tonumber(L,-4);
@@ -348,6 +250,20 @@ int getpixelBinding(lua_State *L) {
     lua_pushnumber(L,g);
     lua_pushnumber(L,b);
     return 3;
+}
+
+int spriteBinding(lua_State *L) {
+    const char *filename;
+    int x, y, angle, argc = lua_gettop(L);
+    void *sprite;
+
+    filename = lua_tostring(L, 1);
+    x = lua_tonumber(L, 2);
+    y = lua_tonumber(L, 3);
+    angle = (argc == 4) ? lua_tonumber(L,4) : 0;
+    sprite = spriteLoad(L,filename);
+    spriteBlit(l81.fb, sprite, x, y, angle);
+    return 1;
 }
 
 /* ========================== Events processing ============================= */
@@ -577,11 +493,7 @@ void resetProgram(void) {
     lua_pushcfunction(l81.L,spriteBinding);
     lua_setglobal(l81.L,"sprite");
 
-    luaL_newmetatable(l81.L, SPRITE_MT);
-    lua_pushvalue(l81.L, -1);
-    lua_setfield(l81.L, -2, "__index");
-
-    luaL_register(l81.L, NULL, sprite_m);
+    initSpriteEngine(l81.L);
 
     /* Start with a black screen */
     fillBackground(l81.fb,0,0,0);

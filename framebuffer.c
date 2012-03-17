@@ -98,3 +98,83 @@ void bfWriteString(frameBuffer *fb, int xp, int yp, const char *s, int len, int 
         bfWriteChar(fb,xp-((16-FONT_KERNING)/2)+i*FONT_KERNING,yp,
                     s[i],r,g,b,alpha);
 }
+
+/* ================================ Sprites =================================
+ * The interface exported is opaque and only uses void pointers, so that a
+ * different implementation of the framebuffer.c not using SDL can retain
+ * the same interface with load81.c. */
+#define SPRITE_MT "l81.sprite_mt"
+
+void spriteBlit(frameBuffer *fb, void *sprite, int x, int y, int angle) {
+    SDL_Surface *s = sprite;
+    if (s == NULL) return;
+    if (angle) s = rotozoomSurface(s,angle,1,1);
+    SDL_Rect dst = {x, fb->height-1-y - s->h, s->w, s->h};
+    SDL_BlitSurface(s, NULL, fb->screen, &dst);
+    if (angle) SDL_FreeSurface(s);
+}
+
+/* Load sprite.  Return surface pointer and object on top of stack */
+void *spriteLoad(lua_State *L, const char *filename) {
+    SDL_Surface **pps;
+
+    /* check if image was already loaded and cached */
+    lua_getglobal(L, "sprites");
+    lua_getfield(L, -1, filename);
+    if (lua_isnil(L, -1)) {
+        /* load image into surface */
+        SDL_Surface *ps = IMG_Load(filename);
+        if (ps == NULL) {   
+            luaL_error(L, "failed to load sprite %s", filename);
+            return NULL;
+        }
+
+        /* box the surface pointer in a userdata */
+        pps = (SDL_Surface **)lua_newuserdata(L, sizeof(SDL_Surface *));
+        *pps = ps;
+
+        /* set sprite metatable */
+        luaL_getmetatable(L, SPRITE_MT);
+        lua_setmetatable(L, -2);
+
+        /* cache loaded surface in sprite table */
+        lua_pushvalue(L, -1); 
+        lua_setfield(L, -4, filename);
+    } else {
+        /* unbox surface pointer */
+        pps = (SDL_Surface **)luaL_checkudata(L, -1, SPRITE_MT);
+    }
+    return *pps;
+}
+
+int spriteGC(lua_State *L) {
+    SDL_Surface **pps = (SDL_Surface **)luaL_checkudata(L, 1, SPRITE_MT);
+    if (pps) SDL_FreeSurface(*pps);
+    return 0;
+}
+
+int spriteGetHeight(lua_State *L) {
+    SDL_Surface **pps = (SDL_Surface **)luaL_checkudata(L, 1, SPRITE_MT);
+    lua_pushnumber(L, (*pps)->h);
+    return 1;
+}
+
+int spriteGetWidth(lua_State *L) {
+    SDL_Surface **pps = (SDL_Surface **)luaL_checkudata(L, 1, SPRITE_MT);
+    lua_pushnumber(L, (*pps)->w);
+    return 1;
+}
+
+static const struct luaL_Reg sprite_m[] = {
+    { "__gc",      spriteGC        },
+    { "getHeight", spriteGetHeight },
+    { "getWidth",  spriteGetWidth  },
+    { NULL,        NULL            }
+};
+
+void initSpriteEngine(lua_State *L) {
+    luaL_newmetatable(L, SPRITE_MT);
+    lua_pushvalue(L, -1);
+    lua_setfield(L, -2, "__index");
+    luaL_register(L, NULL, sprite_m);
+}
