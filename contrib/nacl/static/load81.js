@@ -1,4 +1,4 @@
-var initial_script = "examples/asteroids.lua";
+var initial_script = "examples/scorched.lua";
 
 $(document).ready(function(){
 	var nacl_module = null;
