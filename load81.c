@@ -405,6 +405,12 @@ void joystickYMovedEvent(int joy_num, Sint16 y) {
         setArrayFieldNumber("joystick", joy_num, "y", y);
     }
 }
+void joystickButtonEvent(int joy_num, int down)
+{
+    if (joy_num < MAX_JOYSTICKS) {
+        setArrayFieldNumber("joystick", joy_num, "button", down);
+    }    
+}
 
 void resetEvents(void) {
     setTableFieldString("keyboard","state","none");
@@ -457,6 +463,12 @@ int processSdlEvents(void) {
             if( event.jaxis.axis == 1) { /* y-axis */
                 joystickYMovedEvent(event.jaxis.which + 1, event.jaxis.value);  /* C vs. Lua offsets */
             }
+        break;
+        case SDL_JOYBUTTONUP:  /* Handle Joystick Button Presses */
+            joystickButtonEvent(event.jbutton.which + 1, 0);
+        break;
+        case SDL_JOYBUTTONDOWN:  /* Handle Joystick Button Presses */
+            joystickButtonEvent(event.jbutton.which + 1, 1);
         break;
 
         case SDL_QUIT:
@@ -552,7 +564,7 @@ void resetJoysticks(frameBuffer *fb) {
     
         if (cur_joy == 0) {
             snprintf(joyscript, sizeof(joyscript),
-                "for jn = 1, %d, 1 do joystick[jn]={x=0;y=0;name=nil}; end ", sdl_joys);
+                "for jn = 1, %d, 1 do joystick[jn]={x=0;y=0;name=nil;button=0}; end ", sdl_joys);
             luaL_loadbuffer(l81.L,joyscript,strlen(joyscript),"joyscript");
             lua_pcall(l81.L,0,0,0);
         }

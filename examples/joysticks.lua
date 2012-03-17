@@ -37,9 +37,9 @@ function draw_joystick_info(joynum)
     fill(colors[joynum].r,colors[joynum].g,colors[joynum].b,colors[joynum].a);
     
     -- text explaining joystick name and x/y values goes in a 'quarter' of the screen
-    text(10, joynum * joy_quad, string.format("# %d %s x:%d/y:%d",
+    text(10, joynum * joy_quad, string.format("# %d %s x:%d/y:%d button:%d",
         joynum, joystick[joynum].name,
-        joystick[joynum].x, joystick[joynum].y));
+        joystick[joynum].x, joystick[joynum].y, joystick[joynum].button));
 
     -- each joystick returns x/y axes values from -32767 to 32767, so we map to 
     -- the screen size
