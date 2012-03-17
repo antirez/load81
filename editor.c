@@ -650,12 +650,22 @@ int editorEvents(void) {
 }
 
 void editorSetError(const char *err, int line) {
+    erow *row;
+    
     free(E.err);
     E.err = strdup(err);
     E.errline = line;
+    row = (line >= E.numrows) ? NULL : &E.row[line];
+    if (row) memset(row->hl,HL_ERROR,row->size);
 }
 
 void editorClearError(void) {
+    erow *row;
+
+    if (E.err) {
+        row = (E.errline >= E.numrows) ? NULL : &E.row[E.errline];
+        if (row) editorUpdateSyntax(row);
+    }
     free(E.err);
     E.err = NULL;
     E.errline = 0;
