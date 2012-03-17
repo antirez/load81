@@ -105,10 +105,10 @@ void bfWriteString(frameBuffer *fb, int xp, int yp, const char *s, int len, int 
  * the same interface with load81.c. */
 #define SPRITE_MT "l81.sprite_mt"
 
-void spriteBlit(frameBuffer *fb, void *sprite, int x, int y, int angle) {
+void spriteBlit(frameBuffer *fb, void *sprite, int x, int y, int angle, int aa) {
     SDL_Surface *s = sprite;
     if (s == NULL) return;
-    if (angle) s = rotozoomSurface(s,angle,1,1);
+    if (angle) s = rotozoomSurface(s,angle,1,aa);
     SDL_Rect dst = {x, fb->height-1-y - s->h, s->w, s->h};
     SDL_BlitSurface(s, NULL, fb->screen, &dst);
     if (angle) SDL_FreeSurface(s);

@@ -57,6 +57,7 @@ Drawing functions:
 * text(x,y,string): print the specified text at x,y using a bitmap font.
 * triangle(x1,y1,x2,y2,x3,y3): draw a triangle with the specified vertex.
 * getpixel(x,y): return the red,gree,blue value of the specified pixel.
+* sprite(file,x,y,[rotation],[antialiasing]): draw sprite at coordinates with the specified rotation (in degrees, default 0) and antialiasing (default false).
 
 Control functions:
 

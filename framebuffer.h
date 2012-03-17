@@ -39,7 +39,7 @@ void bfWriteChar(frameBuffer *fb, int xp, int yp, int c, int r, int g, int b, in
 void bfWriteString(frameBuffer *fb, int xp, int yp, const char *s, int len, int r, int g, int b, int alpha);
 
 /* Sprites */
-void spriteBlit(frameBuffer *fb, void *sprite, int x, int y, int angle);
+void spriteBlit(frameBuffer *fb, void *sprite, int x, int y, int angle, int aa);
 void *spriteLoad(lua_State *L, const char *filename);
 void initSpriteEngine(lua_State *L);
 
