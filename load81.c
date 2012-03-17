@@ -78,6 +78,72 @@ lua_Number getNumber(char *name) {
     return n;
 }
 
+
+/*  update the table_name[] table, at index, by given field, to num
+    e.g. table_name[1].x = 100
+    stack:
+        table_name              global
+            [1]                 index
+                .x              field
+                    = 100       number
+*/
+void setArrayFieldNumber( char *table_name, int index, char *field, int number)
+{
+    lua_getglobal(l81.L, table_name);
+
+    /* Create new if needed */
+    if (lua_isnil(l81.L,-1)) {
+        lua_pop(l81.L,1);
+        lua_newtable(l81.L);
+        lua_setglobal(l81.L, table_name);
+        lua_getglobal(l81.L, table_name);
+    }
+
+    /* lua: table_named[index].field = value  */ 
+    if (lua_istable(l81.L, -1)) {
+        lua_pushnumber(l81.L, index);
+        /* get table for modification */
+        lua_gettable(l81.L, -2);    
+        lua_pushstring(l81.L, field);
+        lua_pushnumber(l81.L, number);
+        lua_settable(l81.L, -3);
+    }
+
+    lua_pop(l81.L, 2);
+}
+
+/* 
+    update the table_name[] table, .name field
+    e.g. table_name[1].name = "nub0"
+    stack:
+        table_name              global
+            [1]                 joynum
+                .name           field
+                    = "nub0"    value
+*/
+void setArrayFieldString(char *table_name, int index, char *field, const char *value)
+{
+    lua_getglobal(l81.L, table_name);
+    if (lua_isnil(l81.L,-1)) {
+        lua_pop(l81.L,1);
+        lua_newtable(l81.L);
+        lua_setglobal(l81.L,table_name);
+        lua_getglobal(l81.L,table_name);
+    }
+ 
+    if (lua_istable(l81.L, -1)) {
+        lua_pushnumber(l81.L, index);
+        /* get table for modification */
+        lua_gettable(l81.L, -2);
+        lua_pushstring(l81.L, field);
+        lua_pushstring(l81.L, value);
+        lua_settable(l81.L, -3);
+    }
+
+    lua_pop(l81.L, 2);
+}
+
+
 /* Set a Lua global table field to the value on the top of the Lua stack. */
 void setTableField(char *name, char *field) {
     lua_getglobal(l81.L,name);          /* Stack: val table */
@@ -328,6 +394,18 @@ void mouseButtonEvent(int button, int pressed) {
     updatePressedState("mouse",buttonname,pressed);
 }
 
+void joystickXMovedEvent(int joy_num, Sint16 x) { 
+    if (joy_num < MAX_JOYSTICKS) {
+        setArrayFieldNumber("joystick", joy_num, "x", x);
+    }
+}
+
+void joystickYMovedEvent(int joy_num, Sint16 y) { 
+    if (joy_num < MAX_JOYSTICKS) {
+        setArrayFieldNumber("joystick", joy_num, "y", y);
+    }
+}
+
 void resetEvents(void) {
     setTableFieldString("keyboard","state","none");
     setTableFieldString("keyboard","key","");
@@ -372,6 +450,15 @@ int processSdlEvents(void) {
         case SDL_MOUSEBUTTONUP:
             mouseButtonEvent(event.button.button,0);
             break;
+        case SDL_JOYAXISMOTION:  /* Handle Joystick Motion */
+            if( event.jaxis.axis == 0) { /* x-axis */
+                joystickXMovedEvent(event.jaxis.which + 1, event.jaxis.value);  /* C vs. Lua offsets */
+            }
+            if( event.jaxis.axis == 1) { /* y-axis */
+                joystickYMovedEvent(event.jaxis.which + 1, event.jaxis.value);  /* C vs. Lua offsets */
+            }
+        break;
+
         case SDL_QUIT:
             exit(0);
             break;
@@ -446,10 +533,58 @@ void initScreen(void) {
                                l81.bpp,l81.opt_full_screen);
 }
 
+void initJoysticks(frameBuffer *fb) {
+    int cur_joy;
+    for(cur_joy=0; cur_joy < MAX_JOYSTICKS; cur_joy++ ) {
+        fb->joysticks[cur_joy] = NULL;
+    }
+}
+
+void resetJoysticks(frameBuffer *fb) { 
+    int cur_joy, sdl_joys, num_joys;
+    char joyscript[70];
+
+    /* Initialize Joysticks */
+    SDL_JoystickEventState(SDL_ENABLE);
+
+
+    for(sdl_joys = SDL_NumJoysticks(), cur_joy=0, num_joys=0; cur_joy < sdl_joys; cur_joy++ ) {
+    
+        if (cur_joy == 0) {
+            snprintf(joyscript, sizeof(joyscript),
+                "for jn = 1, %d, 1 do joystick[jn]={x=0;y=0;name=nil}; end ", sdl_joys);
+            luaL_loadbuffer(l81.L,joyscript,strlen(joyscript),"joyscript");
+            lua_pcall(l81.L,0,0,0);
+        }
+
+        if (fb->joysticks[cur_joy] != NULL)
+            SDL_JoystickClose( fb->joysticks[cur_joy]);
+
+        if (cur_joy < MAX_JOYSTICKS) {
+            fb->joysticks[cur_joy] = SDL_JoystickOpen(cur_joy);
+
+            if (fb->joysticks[cur_joy] != NULL) {
+                setArrayFieldString("joystick", cur_joy + 1, "name", SDL_JoystickName(cur_joy));
+                setArrayFieldNumber("joystick", cur_joy + 1, "axes", SDL_JoystickNumAxes(fb->joysticks[cur_joy]));
+                setArrayFieldNumber("joystick", cur_joy + 1, "trackballs", SDL_JoystickNumBalls(fb->joysticks[cur_joy]));
+                setArrayFieldNumber("joystick", cur_joy + 1, "hats", SDL_JoystickNumHats(fb->joysticks[cur_joy]));
+                setArrayFieldNumber("joystick", cur_joy + 1, "buttons", SDL_JoystickNumButtons(fb->joysticks[cur_joy]));
+                setArrayFieldNumber("joystick", cur_joy + 1, "x", 0);
+                setArrayFieldNumber("joystick", cur_joy + 1, "y", 0);
+                num_joys ++;
+            }
+        }
+    }
+
+    setTableFieldNumber("joystick", "count", num_joys);
+}
+
+
 void resetProgram(void) {
     char *initscript =
-        "keyboard={}; keyboard['pressed']={};"
-        "mouse={}; mouse['pressed']={};"
+        "keyboard={}; keyboard['pressed']={};" \
+        "mouse={}; mouse['pressed']={};" \
+        "joystick={}; " \
         "sprites={}";
 
     l81.epoch = 0;
@@ -462,6 +597,8 @@ void resetProgram(void) {
     luaopen_debug(l81.L);
     setNumber("WIDTH",l81.width);
     setNumber("HEIGHT",l81.height);
+
+
     luaL_loadbuffer(l81.L,initscript,strlen(initscript),"initscript");
     lua_pcall(l81.L,0,0,0);
 
@@ -472,6 +609,10 @@ void resetProgram(void) {
     setTableFieldNumber("mouse","xrel",0);
     setTableFieldNumber("mouse","yrel",0);
 
+
+    /* Reset joysticks */
+    resetJoysticks(l81.fb);
+    
     /* Register API */
     lua_pushcfunction(l81.L,fillBinding);
     lua_setglobal(l81.L,"fill");
@@ -498,6 +639,8 @@ void resetProgram(void) {
 
     /* Start with a black screen */
     fillBackground(l81.fb,0,0,0);
+
+
 }
 
 /* ================================= Main ================================== */
@@ -562,6 +705,7 @@ int main(int argc, char **argv) {
     initConfig();
     parseOptions(argc,argv);
     initScreen();
+    initJoysticks(l81.fb);
     initEditor(l81.fb,30,30,30,30);
     editorOpen(l81.filename);
     while(1) {

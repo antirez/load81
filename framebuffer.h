@@ -14,10 +14,14 @@
 #define FONT_HEIGHT 16
 #define FONT_KERNING 10
 
+/* This is the maximum number of joysticks we will allow LOAD81 to deal with */
+#define MAX_JOYSTICKS 8
+
 typedef struct frameBuffer {
     int width;
     int height;
     SDL_Surface *screen;
+    SDL_Joystick *joysticks[MAX_JOYSTICKS]; /* Joystick handles are held per-screen */
     FPSmanager fps_mgr;
 } frameBuffer;
 

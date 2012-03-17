@@ -8,7 +8,7 @@ SDL_Surface *sdlInit(int width, int height, int bpp, int fullscreen) {
     SDL_Surface *screen;
 
     if (fullscreen) flags |= SDL_FULLSCREEN;
-    if (SDL_Init(SDL_INIT_VIDEO) == -1) {
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK) == -1) {
         fprintf(stderr, "SDL Init error: %s\n", SDL_GetError());
         return NULL;
     }
