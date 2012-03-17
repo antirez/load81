@@ -609,8 +609,6 @@ void resetProgram(void) {
     luaopen_debug(l81.L);
     setNumber("WIDTH",l81.width);
     setNumber("HEIGHT",l81.height);
-
-
     luaL_loadbuffer(l81.L,initscript,strlen(initscript),"initscript");
     lua_pcall(l81.L,0,0,0);
 
@@ -620,7 +618,6 @@ void resetProgram(void) {
     setTableFieldNumber("mouse","y",0);
     setTableFieldNumber("mouse","xrel",0);
     setTableFieldNumber("mouse","yrel",0);
-
 
     /* Reset joysticks */
     resetJoysticks(l81.fb);
