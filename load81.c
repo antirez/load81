@@ -254,13 +254,13 @@ int getpixelBinding(lua_State *L) {
 
 int spriteBinding(lua_State *L) {
     const char *filename;
-    int x, y, angle, argc = lua_gettop(L);
+    int x, y, angle;
     void *sprite;
 
     filename = lua_tostring(L, 1);
     x = lua_tonumber(L, 2);
     y = lua_tonumber(L, 3);
-    angle = (argc == 4) ? lua_tonumber(L,4) : 0;
+    angle = luaL_optnumber(L,4,0);
     sprite = spriteLoad(L,filename);
     spriteBlit(l81.fb, sprite, x, y, angle);
     return 1;
