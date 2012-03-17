@@ -14,8 +14,9 @@ ESC key.
 
 ![Load81 Asteroids](http://antirez.com/misc/codakido_screenshot_3.png)
 
-Load81 is written in ANSI C and uses SDL and SDL_gfx, so should compile on 
-Mac OS X, Linux and Windows without issues.
+Load81 is written in ANSI C and uses `SDL` and `SDL_gfx` and `SDL_image`, so
+should compile on Mac OS X and Linux without issues. It should not be hard
+to port it to Windows.
 
 The coordinate system and the basic drawing functions are compatible with
 Codea (check http://twolivesleft.com/Codea/ for more information), but there
