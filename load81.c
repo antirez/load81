@@ -648,8 +648,6 @@ void resetProgram(void) {
 
     /* Start with a black screen */
     fillBackground(l81.fb,0,0,0);
-
-
 }
 
 /* ================================= Main ================================== */
