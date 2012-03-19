@@ -38,8 +38,6 @@
 #include "editor.h"
 #include "load81.h"
 
-#define NOTUSED(V) ((void) V)
-
 struct globalConfig l81;
 
 /* =========================== Utility functions ============================ */
@@ -457,24 +455,20 @@ void resetProgram(void) {
     setTableFieldNumber("mouse","yrel",0);
 
     /* Register API */
-    lua_pushcfunction(l81.L,fillBinding);
-    lua_setglobal(l81.L,"fill");
-    lua_pushcfunction(l81.L,rectBinding);
-    lua_setglobal(l81.L,"rect");
-    lua_pushcfunction(l81.L,ellipseBinding);
-    lua_setglobal(l81.L,"ellipse");
-    lua_pushcfunction(l81.L,backgroundBinding);
-    lua_setglobal(l81.L,"background");
-    lua_pushcfunction(l81.L,triangleBinding);
-    lua_setglobal(l81.L,"triangle");
-    lua_pushcfunction(l81.L,lineBinding);
-    lua_setglobal(l81.L,"line");
-    lua_pushcfunction(l81.L,textBinding);
-    lua_setglobal(l81.L,"text");
-    lua_pushcfunction(l81.L,setFPSBinding);
-    lua_setglobal(l81.L,"setFPS");
-    lua_pushcfunction(l81.L,getpixelBinding);
-    lua_setglobal(l81.L,"getpixel");
+    const luaL_Reg api [] = {
+      {"fill",       fillBinding},
+      {"rect",       rectBinding},
+      {"ellipse",    ellipseBinding},
+      {"background", backgroundBinding},
+      {"triangle",   triangleBinding},
+      {"line",       lineBinding},
+      {"text",       textBinding},
+      {"setFPS",     setFPSBinding},
+      {"getpixel",   getpixelBinding}
+    };
+    lua_pushvalue(l81.L, LUA_GLOBALSINDEX);
+    luaL_register(l81.L, NULL, api);
+    lua_pop(l81.L, 1);
 
     /* Start with a black screen */
     fillBackground(l81.fb,0,0,0);
@@ -536,9 +530,6 @@ void parseOptions(int argc, char **argv) {
 }
 
 int main(int argc, char **argv) {
-    NOTUSED(argc);
-    NOTUSED(argv);
-
     initConfig();
     parseOptions(argc,argv);
     initScreen();
