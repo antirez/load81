@@ -241,7 +241,7 @@ function fire_secret()
     local player = current_player
     local speed = player.power/10
     for i = 1,10 do
-        local a = math.rad(player.angle) + math.random()*0.05-0.1
+        local a = math.rad(player.angle) + math.random()*0.1-0.05
         local bullet = {
             player = player,
             x = player.x,
