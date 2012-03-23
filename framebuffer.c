@@ -67,6 +67,17 @@ void drawLine(frameBuffer *fb, int x1, int y1, int x2, int y2, int r, int g, int
     lineRGBA(fb->screen, x1, fb->height-1-y1, x2, fb->height-1-y2, r, g, b, alpha);
 }
 
+void drawPolygon(frameBuffer *fb, Sint16* xv, Sint16* yv, int n, int filled, int r, int g, int b, int alpha) {
+    int i;
+    for (i=0; i<n; i++) yv[i] = fb->height-1-yv[i];
+    if (filled) {
+      filledPolygonRGBA(fb->screen, xv, yv, n, r, g, b, alpha);
+    }
+    else {
+      polygonRGBA(fb->screen, xv, yv, n, r, g, b, alpha);
+    }
+}
+
 /* ============================= Bitmap font =============================== */
 void bfLoadFont(char **c) {
     /* Set all the entries to NULL. */

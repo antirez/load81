@@ -32,6 +32,7 @@ void drawEllipse(frameBuffer *fb, int xc, int yc, int radx, int rady, int r, int
 void drawBox(frameBuffer *fb, int x1, int y1, int x2, int y2, int r, int g, int b, int alpha);
 void drawTriangle(frameBuffer *fb, int x1, int y1, int x2, int y2, int x3, int y3, int r, int g, int b, int alpha);
 void drawLine(frameBuffer *fb, int x1, int y1, int x2, int y2, int r, int g, int b, int alpha);
+void drawPolygon(frameBuffer *fb, Sint16* xv, Sint16* yv, int n, int filled, int r, int g, int b, int alpha);
 
 /* Bitmap font */
 void bfLoadFont(char **c);
