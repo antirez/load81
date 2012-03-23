@@ -15,6 +15,7 @@ struct globalConfig {
     /* Runtime */
     int r,g,b;
     int alpha;
+    char filled;
     int fps;
     long long start_ms;
     long long epoch;

@@ -135,6 +135,11 @@ int fillBinding(lua_State *L) {
     return 0;
 }
 
+int filledBinding(lua_State *L) {
+  l81.filled = lua_toboolean(L,-1);
+  return 0;
+}
+
 int rectBinding(lua_State *L) {
     int x,y,w,h;
 
@@ -142,7 +147,7 @@ int rectBinding(lua_State *L) {
     y = lua_tonumber(L,-3);
     w = lua_tonumber(L,-2);
     h = lua_tonumber(L,-1);
-    drawBox(l81.fb,x,y,x+(w-1),y+(h-1),l81.r,l81.g,l81.b,l81.alpha);
+    drawBox(l81.fb,x,y,x+(w-1),y+(h-1),l81.r,l81.g,l81.b,l81.alpha,l81.filled);
     return 0;
 }
 
@@ -153,7 +158,7 @@ int ellipseBinding(lua_State *L) {
     y = lua_tonumber(L,-3);
     rx = lua_tonumber(L,-2);
     ry = lua_tonumber(L,-1);
-    drawEllipse(l81.fb,x,y,rx,ry,l81.r,l81.g,l81.b,l81.alpha);
+    drawEllipse(l81.fb,x,y,rx,ry,l81.r,l81.g,l81.b,l81.alpha,l81.filled);
     return 0;
 }
 
@@ -166,7 +171,7 @@ int triangleBinding(lua_State *L) {
     y2 = lua_tonumber(L,-3);
     x3 = lua_tonumber(L,-2);
     y3 = lua_tonumber(L,-1);
-    drawTriangle(l81.fb,x1,y1,x2,y2,x3,y3,l81.r,l81.g,l81.b,l81.alpha);
+    drawTriangle(l81.fb,x1,y1,x2,y2,x3,y3,l81.r,l81.g,l81.b,l81.alpha,l81.filled);
     return 0;
 }
 
@@ -339,7 +344,7 @@ void showFPS(void) {
 
     if (!elapsed_ms) return;
     snprintf(buf,sizeof(buf),"FPS: %.2f",(float)(l81.epoch*1000)/elapsed_ms);
-    drawBox(l81.fb,0,0,100,20,0,0,0,255);
+    drawBox(l81.fb,0,0,100,20,0,0,0,255,1);
     bfWriteString(l81.fb,0,0,buf,strlen(buf),128,128,128,255);
 }
 
@@ -413,6 +418,7 @@ void initConfig(void) {
     l81.r = 255;
     l81.g = l81.b = 0;
     l81.alpha = 255;
+    l81.filled = 1;
     l81.L = NULL;
     l81.luaerr = 0;
     l81.opt_show_fps = 0;
@@ -475,6 +481,8 @@ void resetProgram(void) {
     /* Register API */
     lua_pushcfunction(l81.L,fillBinding);
     lua_setglobal(l81.L,"fill");
+    lua_pushcfunction(l81.L,filledBinding);
+    lua_setglobal(l81.L,"filled");
     lua_pushcfunction(l81.L,rectBinding);
     lua_setglobal(l81.L,"rect");
     lua_pushcfunction(l81.L,ellipseBinding);
