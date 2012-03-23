@@ -216,39 +216,39 @@ int polygonBinding(lua_State *L) {
   Sint16* polyBufferX;
   Sint16* polyBufferY;
 
-  int size=0, i=0;
-  int good=0;
+  if (!(lua_gettop(L) == 2 && lua_istable(L,-1) && lua_istable(L,-2))) {
+      programError("Invalid arguments for polygon");
+      return 0;
+  }
 
-  if (lua_gettop(L) == 2) {
-    if (lua_istable(L,-1)) {
-      size = (int)lua_objlen(L,-1);
-      polyBufferY = (Sint16*)malloc(size * sizeof(Sint16));
-      lua_pushnil(L);
-      while(lua_next(L,-2) != 0) {
-        polyBufferY[i++] = (Sint16)lua_tonumber(L,-1);
-        lua_pop(L,1);
-        if (i > size) break;
-      }
-      good++;
-      lua_pop(L,1);
-    }
-    if (lua_istable(L,-1)) {
-      polyBufferX = (Sint16*)malloc(size * sizeof(Sint16));
-      lua_pushnil(L);
-      i=0;
-      while(lua_next(L,-2) != 0) {
-        polyBufferX[i++] = (Sint16)lua_tonumber(L,-1);
-        lua_pop(L,1);
-        if (i > size) break;
-      }
-      good++;
-    }
+  int size = (int)lua_objlen(L,-1), i=0;
+  polyBufferY = (Sint16*)malloc(size * sizeof(Sint16));
+  lua_pushnil(L);
+  while(lua_next(L,-2) != 0) {
+    polyBufferY[i++] = (Sint16)lua_tonumber(L,-1);
+    lua_pop(L,1);
+    if (i > size) break;
   }
-  if (good == 2) {
-    drawPolygon(l81.fb, polyBufferX, polyBufferY, size, filled, l81.r, l81.g, l81.b, l81.alpha);
-    free(polyBufferX);
-    free(polyBufferY);
+
+  lua_pop(L,1);
+
+  if (size != (int)lua_objlen(L,-1)) {
+    programError("Array size mismatch in call to polygon");
+    return 0;
   }
+  polyBufferX = (Sint16*)malloc(size * sizeof(Sint16));
+  lua_pushnil(L);
+  i=0;
+  while(lua_next(L,-2) != 0) {
+    polyBufferX[i++] = (Sint16)lua_tonumber(L,-1);
+    lua_pop(L,1);
+    if (i > size) break;
+  }
+
+  drawPolygon(l81.fb, polyBufferX, polyBufferY, size, l81.r, l81.g, l81.b, l81.alpha);
+
+  free(polyBufferX);
+  free(polyBufferY);
   return 0;
 }
 
