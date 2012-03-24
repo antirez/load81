@@ -50,6 +50,7 @@ PROGRAMMING INTERFACE
 Drawing functions:
 
 * fill(r,g,b,alpha): select the drawing color.
+* filled(filled): set the filled state (true or false)
 * background(r,g,b): paint the whole background with the specified color.
 * rect(x,y,width,height): draw a rectangle at x,y (left-bottom corner).
 * ellipse(x,y,width,height): draw an ellipse centered at x,y.
@@ -58,6 +59,7 @@ Drawing functions:
 * triangle(x1,y1,x2,y2,x3,y3): draw a triangle with the specified vertex.
 * getpixel(x,y): return the red,gree,blue value of the specified pixel.
 * sprite(file,x,y,[rotation],[antialiasing]): draw sprite at coordinates with the specified rotation (in degrees, default 0) and antialiasing (default false).
+* polygon(xv, yv): draw a polygon using a table of X values and a table of Y values.
 
 Control functions:
 
