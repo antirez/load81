@@ -250,7 +250,7 @@ int polygonBinding(lua_State *L) {
     if (i > size) break;
   }
 
-  drawPolygon(l81.fb, polyBufferX, polyBufferY, size, l81.r, l81.g, l81.b, l81.alpha);
+  drawPolygon(l81.fb, polyBufferX, polyBufferY, size, l81.r, l81.g, l81.b, l81.alpha, l81.filled);
 
   free(polyBufferX);
   free(polyBufferY);
