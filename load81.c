@@ -303,15 +303,16 @@ int getpixelBinding(lua_State *L) {
 int spriteBinding(lua_State *L) {
     const char *filename;
     int x, y, angle, antialiasing;
-    void *sprite;
+    sprite *sprite;
 
     filename = lua_tostring(L, 1);
-    x = lua_tonumber(L, 2);
-    y = lua_tonumber(L, 3);
+    x = luaL_optnumber(L, 2, -1);
+    y = luaL_optnumber(L, 3, -1);
     angle = luaL_optnumber(L,4,0);
     antialiasing = lua_toboolean(L,5);
     sprite = spriteLoad(L,filename);
-    spriteBlit(l81.fb, sprite, x, y, angle, antialiasing);
+    if (x >= 0 && y >= 0)
+      spriteBlit(l81.fb, sprite, x, y, -1, angle, antialiasing);
     return 1;
 }
 

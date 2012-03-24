@@ -21,6 +21,8 @@ typedef struct frameBuffer {
     FPSmanager fps_mgr;
 } frameBuffer;
 
+frameBuffer *gfb;
+
 /* Frame buffer */
 frameBuffer *createFrameBuffer(int width, int height, int bpp, int fullscreen);
 
@@ -39,9 +41,19 @@ void bfLoadFont(char **c);
 void bfWriteChar(frameBuffer *fb, int xp, int yp, int c, int r, int g, int b, int alpha);
 void bfWriteString(frameBuffer *fb, int xp, int yp, const char *s, int len, int r, int g, int b, int alpha);
 
+typedef struct sprite {
+  int w;
+  int h;
+  int tileX;
+  int tileY;
+  int tileW;
+  int tileH;
+  SDL_Surface *surf;
+} sprite;
+
 /* Sprites */
-void spriteBlit(frameBuffer *fb, void *sprite, int x, int y, int angle, int aa);
-void *spriteLoad(lua_State *L, const char *filename);
+void spriteBlit(frameBuffer *fb, sprite *sp, int x, int y, int tileNum, int angle, int aa);
+sprite *spriteLoad(lua_State *L, const char *filename);
 void initSpriteEngine(lua_State *L);
 
 #endif /* FRAMEBUFFER_H */

@@ -58,8 +58,22 @@ Drawing functions:
 * text(x,y,string): print the specified text at x,y using a bitmap font.
 * triangle(x1,y1,x2,y2,x3,y3): draw a triangle with the specified vertex.
 * getpixel(x,y): return the red,gree,blue value of the specified pixel.
-* sprite(file,x,y,[rotation],[antialiasing]): draw sprite at coordinates with the specified rotation (in degrees, default 0) and antialiasing (default false).
 * polygon(xv, yv): draw a polygon using a table of X values and a table of Y values.
+
+Sprite functions:
+
+* sprite(file,[x,y,[rotation],[antialiasing]]): draw sprite at coordinates with the specified rotation (in degrees, default 0) and antialiasing (default false).
+
+Returns a sprite userdata object, with the following functions
+
+* getHeight(): returns the height of the sprite.
+* getWidth(): returns the height of the sprite.
+* getTiles(): returns x,y for the number of tiles horizontally and vertically.
+* setTiles(x,y): set the number of tiles horizontally and vertically.
+* getTileSize(): return w,h for the size of a tile, calculated from the width and height of the image divided by the number of tiles horizontally and vertically.
+* getTileNum(): returns the number of tiles.
+* tile(x,y,tileNum,[rotation],[antialiasing]): draw a tile using tileNum at coordinates with the specified rotation (in degrees, default 0) and antialiasing (default: false).
+* draw(x,y,[rotation],[antialiasing]): draw sprite at coordinates with the specified rotation (in degrees, default 0) and antialiasing (default: false).
 
 Control functions:
 
