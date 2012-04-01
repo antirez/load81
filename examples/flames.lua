@@ -1,6 +1,7 @@
 -- Flames.lua, contributed by pmprog in the OpenPandora board.
 -- See http://boards.openpandora.org/index.php?/topic/7405-here-is-a-pnd-for-load81/
 
+
 function setup()
     local x, y, l
 
@@ -21,10 +22,26 @@ function setup()
     end
 end
 
+-- can't find this in .math, but lets have it here for later transformation anyway ..
+function map(x, in_min, in_max, out_min, out_max)
+  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+end
+ 
 function draw()
-    local i, f, minMove
+    local i, f, minMove;
+
+	-- user can move joystick to get different flame effects
+	local joy_Lengths = { 5, 15, 20, 45, 60, 95, 140, 170, 200};
+	local joy_Flames = { 5, 10, 15, 30, 60, 75, 90, 150 };
 
     background(0,0,0)
+
+	-- ahem .. change properties of the flame according to joystick input
+	FlameSize = joy_Lengths[math.floor(map (joystick[1].x, 32767, -32767, 1, #joy_Lengths) + .5)]
+	FlameLife = joy_Flames[math.floor(map (joystick[1].y, 32767, -32767, 1, #joy_Flames) + .5)]
+
+    ellipse(dot_x, dot_y, 30, 20);
+ 
     for i,f in pairs(Flames) do
         if f.l > 35 then
             filled(true)
