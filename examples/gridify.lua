@@ -138,16 +138,18 @@ function draw_percentile_grid()
     for i=0, 100, 5 do -- map along the y axis next
         y_loc = map(i, 0, 100, 0, biggest_axes) - difference
         rect(screen_w_center, y_loc, 5, 5)
-        text(screen_w_center-25, y_loc + 6, tostring(i - 50 * -1) .. "%") 
+        text(screen_w_center-25, y_loc + 6, tostring((i - 50) * -1) .. "%") 
     end
 end
  
 
 function draw_colors_grids()
-    for x in screen_w_center, screen_width do
-        for y in screen_h_center, screen_height do
-            for i in colors do
-                fill (color[i])
+print("screen_w_center : ", screen_w_center)
+print("screen_width : ", screen_width)
+    for i = 1, #colors do
+        for x = screen_w_center, screen_width do
+            for y = screen_h_center, screen_height do
+                fill (colors[i].r, colors[i].g, colors[i].b, colors[i].a)
                 rect (x * 10, y * 10, 5, 5)
             end
         end
