@@ -122,6 +122,20 @@ if a button is pressed use:
 
 Mouse buttons are called '1', '2', '3', ... and so forth.
 
+JOYSTICK EVENTS
+===
+Joystick support is available by directly accessing the joystick[] table.  
+e.g. joystick[1].x / joystick[1].y = X/Y position of Joystick1
+joystick[1].button = button state
+joystick[1].name = "hardware name of the joystick"
+
+joystick.count contains the number of joysticks detected by LOAD81 on
+startup, and will be 0 if no joysticks are available.  Max # of Joysticks
+is currently set at 8.
+
+See examples/joysticks.lua and examples/flames.lua for how to use the
+joystick.
+
 LICENSE
 ===
 
