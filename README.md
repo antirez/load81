@@ -125,9 +125,10 @@ Mouse buttons are called '1', '2', '3', ... and so forth.
 JOYSTICK EVENTS
 ===
 Joystick support is available by directly accessing the joystick[] table.  
-e.g. joystick[1].x / joystick[1].y = X/Y position of Joystick1
-joystick[1].button = button state
-joystick[1].name = "hardware name of the joystick"
+e.g. 
+    joystick[1].x / joystick[1].y = X/Y position of Joystick1
+    joystick[1].button = button state of Joystick1
+    joystick[1].name = "hardware name of the Joystick1"
 
 joystick.count contains the number of joysticks detected by LOAD81 on
 startup, and will be 0 if no joysticks are available.  Max # of Joysticks
