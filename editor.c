@@ -374,7 +374,7 @@ void editorDrawCursor(void) {
     y -= E.margin_top;
     if (!(E.cblink & 0x80)) drawBox(E.fb,x+charmargin,y,
                                 x+charmargin+FONT_KERNING-1,y+FONT_HEIGHT-1,
-                                165,165,255,128);
+                                165,165,255,128,1);
     E.cblink += 4;
 }
 
@@ -412,25 +412,25 @@ void editorDrawChars(void) {
 }
 
 void editorDrawPowerOff(int x, int y) {
-    drawEllipse(E.fb,x,y,12,12,66,66,231,255);
-    drawEllipse(E.fb,x,y,7,7,165,165,255,255);
-    drawBox(E.fb,x-4,y,x+4,y+12,165,165,255,255);
-    drawBox(E.fb,x-2,y,x+2,y+14,66,66,231,255);
+    drawEllipse(E.fb,x,y,12,12,66,66,231,255,1);
+    drawEllipse(E.fb,x,y,7,7,165,165,255,255,1);
+    drawBox(E.fb,x-4,y,x+4,y+12,165,165,255,255,1);
+    drawBox(E.fb,x-2,y,x+2,y+14,66,66,231,255,1);
 }
 
 void editorDrawSaveIcon(int x, int y) {
-    drawBox(E.fb,x-12,y-12,x+12,y+12,66,66,231,255);
-    drawBox(E.fb,x-1,y+7,x+1,y+11,165,165,255,255);
-    drawEllipse(E.fb,x,y,4,4,165,165,255,255);
+    drawBox(E.fb,x-12,y-12,x+12,y+12,66,66,231,255,1);
+    drawBox(E.fb,x-1,y+7,x+1,y+11,165,165,255,255,1);
+    drawEllipse(E.fb,x,y,4,4,165,165,255,255,1);
 }
 
 void editorDraw() {
-    drawBox(E.fb,0,0,E.fb->width-1,E.fb->height-1,165,165,255,255);
+    drawBox(E.fb,0,0,E.fb->width-1,E.fb->height-1,165,165,255,255,1);
     drawBox(E.fb,
             E.margin_left,
             E.margin_bottom,
             E.fb->width-1-E.margin_right,
-            E.fb->height-1-E.margin_top,66,66,231,255);
+            E.fb->height-1-E.margin_top,66,66,231,255,1);
     editorDrawChars();
     editorDrawCursor();
     /* Show buttons */

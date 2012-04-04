@@ -34,6 +34,7 @@ frameBuffer *createFrameBuffer(int width, int height, int bpp, int fullscreen) {
     SDL_initFramerate(&fb->fps_mgr);
     /* Load the bitmap font */
     bfLoadFont((char**)BitmapFont);
+    gfb = fb;
     return fb;
 }
 
@@ -51,20 +52,38 @@ void drawHline(frameBuffer *fb, int x1, int x2, int y, int r, int g, int b, int 
     hlineRGBA(fb->screen, x1, x2, fb->height-1-y, r, g, b, alpha);
 }
 
-void drawEllipse(frameBuffer *fb, int xc, int yc, int radx, int rady, int r, int g, int b, int alpha) {
-    filledEllipseRGBA(fb->screen, xc, fb->height-1-yc, radx, rady, r, g, b, alpha);
+void drawEllipse(frameBuffer *fb, int xc, int yc, int radx, int rady, int r, int g, int b, int alpha, char filled) {
+    if (filled) 
+      filledEllipseRGBA(fb->screen, xc, fb->height-1-yc, radx, rady, r, g, b, alpha);
+    else
+      ellipseRGBA(fb->screen, xc, fb->height-1-yc, radx, rady, r, g, b, alpha);
 }
 
-void drawBox(frameBuffer *fb, int x1, int y1, int x2, int y2, int r, int g, int b, int alpha) {
-    boxRGBA(fb->screen, x1, fb->height-1-y1, x2, fb->height-1-y2, r, g, b, alpha);
+void drawBox(frameBuffer *fb, int x1, int y1, int x2, int y2, int r, int g, int b, int alpha, char filled) {
+    if (filled) 
+      boxRGBA(fb->screen, x1, fb->height-1-y1, x2, fb->height-1-y2, r, g, b, alpha);
+    else
+      rectangleRGBA(fb->screen, x1, fb->height-1-y1, x2, fb->height-1-y2, r, g, b, alpha);
 }
 
-void drawTriangle(frameBuffer *fb, int x1, int y1, int x2, int y2, int x3, int y3, int r, int g, int b, int alpha) {
-    filledTrigonRGBA(fb->screen, x1, fb->height-1-y1, x2, fb->height-1-y2, x3, fb->height-1-y3, r, g, b, alpha);
+void drawTriangle(frameBuffer *fb, int x1, int y1, int x2, int y2, int x3, int y3, int r, int g, int b, int alpha, char filled) {
+    if (filled) 
+      filledTrigonRGBA(fb->screen, x1, fb->height-1-y1, x2, fb->height-1-y2, x3, fb->height-1-y3, r, g, b, alpha);
+    else
+      trigonRGBA(fb->screen, x1, fb->height-1-y1, x2, fb->height-1-y2, x3, fb->height-1-y3, r, g, b, alpha);
 }
 
 void drawLine(frameBuffer *fb, int x1, int y1, int x2, int y2, int r, int g, int b, int alpha) {
     lineRGBA(fb->screen, x1, fb->height-1-y1, x2, fb->height-1-y2, r, g, b, alpha);
+}
+
+void drawPolygon(frameBuffer *fb, Sint16* xv, Sint16* yv, int n, int r, int g, int b, int alpha, char filled) {
+    int i;
+    for (i=0; i<n; i++) yv[i] = fb->height-1-yv[i];
+    if (filled)
+      filledPolygonRGBA(fb->screen, xv, yv, n, r, g, b, alpha);
+    else 
+      polygonRGBA(fb->screen, xv, yv, n, r, g, b, alpha);
 }
 
 /* ============================= Bitmap font =============================== */
@@ -105,7 +124,8 @@ void bfWriteString(frameBuffer *fb, int xp, int yp, const char *s, int len, int 
  * the same interface with load81.c. */
 #define SPRITE_MT "l81.sprite_mt"
 
-void spriteBlit(frameBuffer *fb, void *sprite, int x, int y, int angle, int aa) {
+/*
+void spriteBlit(frameBuffer *fb, sprite *sprite, int x, int y, int angle, int aa) {
     SDL_Surface *s = sprite;
     if (s == NULL) return;
     if (angle) s = rotozoomSurface(s,angle,1,aa);
@@ -113,24 +133,62 @@ void spriteBlit(frameBuffer *fb, void *sprite, int x, int y, int angle, int aa) 
     SDL_BlitSurface(s, NULL, fb->screen, &dst);
     if (angle) SDL_FreeSurface(s);
 }
+*/
+
+void spriteBlit(frameBuffer *fb, sprite *sp, int x, int y, int tileNum, int angle, int aa) {
+    SDL_Surface *s = sp->surf;
+    if (s == NULL) return;
+
+    if (tileNum >= 0) {
+        SDL_Rect dst = {x, fb->height-1-y - sp->tileH, sp->tileW, sp->tileH};
+        SDL_Rect src = {(tileNum%sp->tileY) * sp->tileW, (tileNum / sp->tileY) * sp->tileH, sp->tileW, sp->tileH};
+        if (angle) {
+          SDL_Surface *temp = SDL_CreateRGBSurface(SDL_SWSURFACE, sp->tileW, sp->tileH, fb->screen->format->BitsPerPixel, 0, 0, 0, 0);
+          SDL_Surface *tempRot;
+          SDL_BlitSurface(s, &src, temp, NULL);
+          tempRot = rotozoomSurface(temp,angle,1,aa);
+          SDL_BlitSurface(tempRot, NULL, fb->screen, &dst);
+          SDL_FreeSurface(tempRot);
+          SDL_FreeSurface(temp);
+        }
+        else {
+          SDL_BlitSurface(s, &src, fb->screen, &dst);
+        }
+    }
+    else {
+        SDL_Rect dst = {x, fb->height-1-y - s->h, s->w, s->h};
+        if (angle) s = rotozoomSurface(s,angle,1,aa);
+        SDL_BlitSurface(s, NULL, fb->screen, &dst);
+        if (angle) SDL_FreeSurface(s);
+    }
+}
+
 
 /* Load sprite.  Return surface pointer and object on top of stack */
-void *spriteLoad(lua_State *L, const char *filename) {
-    SDL_Surface **pps;
+sprite *spriteLoad(lua_State *L, const char *filename) {
+    sprite *pps;
 
     /* check if image was already loaded and cached */
     lua_getglobal(L, "sprites");
     lua_getfield(L, -1, filename);
     if (lua_isnil(L, -1)) {
         /* load image into surface */
-        SDL_Surface *ps = IMG_Load(filename);
-        if (ps == NULL) {   
+        sprite ps;
+        ps.surf = IMG_Load(filename);
+        if (ps.surf == NULL) {   
             luaL_error(L, "failed to load sprite %s", filename);
             return NULL;
         }
 
+        ps.w = ps.surf->w;
+        ps.h = ps.surf->h;
+        ps.tileX = 0;
+        ps.tileY = 0;
+        ps.tileW = ps.w;
+        ps.tileH = ps.h;
+
         /* box the surface pointer in a userdata */
-        pps = (SDL_Surface **)lua_newuserdata(L, sizeof(SDL_Surface *));
+        pps = (sprite*)lua_newuserdata(L, sizeof(sprite));
         *pps = ps;
 
         /* set sprite metatable */
@@ -142,34 +200,92 @@ void *spriteLoad(lua_State *L, const char *filename) {
         lua_setfield(L, -4, filename);
     } else {
         /* unbox surface pointer */
-        pps = (SDL_Surface **)luaL_checkudata(L, -1, SPRITE_MT);
+        pps = (sprite *)luaL_checkudata(L, -1, SPRITE_MT);
     }
-    return *pps;
+    return pps;
 }
 
 int spriteGC(lua_State *L) {
-    SDL_Surface **pps = (SDL_Surface **)luaL_checkudata(L, 1, SPRITE_MT);
-    if (pps) SDL_FreeSurface(*pps);
+    sprite *pps = (sprite *)luaL_checkudata(L, 1, SPRITE_MT);
+    if (pps) SDL_FreeSurface(pps->surf);
     return 0;
 }
 
 int spriteGetHeight(lua_State *L) {
-    SDL_Surface **pps = (SDL_Surface **)luaL_checkudata(L, 1, SPRITE_MT);
-    lua_pushnumber(L, (*pps)->h);
+    sprite *pps = (sprite *)luaL_checkudata(L, 1, SPRITE_MT);
+    lua_pushnumber(L, pps->h);
     return 1;
 }
 
 int spriteGetWidth(lua_State *L) {
-    SDL_Surface **pps = (SDL_Surface **)luaL_checkudata(L, 1, SPRITE_MT);
-    lua_pushnumber(L, (*pps)->w);
+    sprite *pps = (sprite *)luaL_checkudata(L, 1, SPRITE_MT);
+    lua_pushnumber(L, pps->w);
     return 1;
 }
 
+int spriteGetTiles(lua_State *L) {
+    sprite *pps = (sprite *)luaL_checkudata(L, 1, SPRITE_MT);
+    lua_pushnumber(L, pps->tileX);
+    lua_pushnumber(L, pps->tileY);
+    return 2;
+}
+
+int spriteSetTiles(lua_State *L) {
+    sprite *pps = (sprite *)luaL_checkudata(L, 1, SPRITE_MT);
+    pps->tileX = lua_tonumber(L, 2);
+    pps->tileY = lua_tonumber(L, 3);
+    pps->tileW = pps->w / pps->tileX;
+    pps->tileH = pps->h / pps->tileY;
+    return 0;
+}
+
+int spriteGetTileSize(lua_State *L) {
+    sprite *pps = (sprite *)luaL_checkudata(L, 1, SPRITE_MT);
+    lua_pushnumber(L, pps->tileW);
+    lua_pushnumber(L, pps->tileH);
+    return 2;
+}
+
+int spriteGetTileNum(lua_State *L) {
+    sprite *pps = (sprite *)luaL_checkudata(L, 1, SPRITE_MT);
+    lua_pushnumber(L, pps->tileX * pps->tileY);
+    return 1;
+}
+
+int spriteDrawTile(lua_State *L) {
+    int x, y, tileNum, angle, antialiasing;
+    sprite *pps = (sprite *)luaL_checkudata(L, 1, SPRITE_MT);
+    x = lua_tonumber(L, 2);
+    y = lua_tonumber(L, 3);
+    tileNum = lua_tonumber(L,4);
+    angle = luaL_optnumber(L,5,0);
+    antialiasing = lua_toboolean(L,6);
+    spriteBlit(gfb, pps, x, y, tileNum, angle, antialiasing);
+    return 0;
+}
+
+int spriteDraw(lua_State *L) {
+    int x, y, angle, antialiasing;
+    sprite *pps = (sprite *)luaL_checkudata(L, 1, SPRITE_MT);
+    x = lua_tonumber(L, 2);
+    y = lua_tonumber(L, 3);
+    angle = luaL_optnumber(L,4,0);
+    antialiasing = lua_toboolean(L,5);
+    spriteBlit(gfb, pps, x, y, -1, angle, antialiasing);
+    return 0;
+}
+
 static const struct luaL_Reg sprite_m[] = {
-    { "__gc",      spriteGC        },
-    { "getHeight", spriteGetHeight },
-    { "getWidth",  spriteGetWidth  },
-    { NULL,        NULL            }
+    { "__gc",        spriteGC          },
+    { "getHeight",   spriteGetHeight   },
+    { "getWidth",    spriteGetWidth    },
+    { "getTiles",    spriteGetTiles    },
+    { "setTiles",    spriteSetTiles    },
+    { "getTileSize", spriteGetTileSize },
+    { "getTileNum",  spriteGetTileNum  },
+    { "tile",        spriteDrawTile    },
+    { "draw",        spriteDraw        },
+    { NULL,          NULL              }
 };
 
 void initSpriteEngine(lua_State *L) {
