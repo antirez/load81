@@ -125,7 +125,8 @@ Mouse buttons are called '1', '2', '3', ... and so forth.
 JOYSTICK EVENTS
 ===
 Joystick support is available by directly accessing the joystick[] table.  
-e.g. 
+For example:
+
     joystick[1].x / joystick[1].y = X/Y position of Joystick1
     joystick[1].button = button state of Joystick1
     joystick[1].name = "hardware name of the Joystick1"
