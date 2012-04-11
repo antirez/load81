@@ -5,6 +5,7 @@ screen_width = WIDTH
 screen_height = HEIGHT
 screen_w_center = screen_width / 2
 screen_h_center = screen_height / 2
+cell_size = HEIGHT / 4
  
 colors = {}
 colors = { {r=255,  g=0,    b=255,  a=1},
@@ -14,7 +15,8 @@ colors = { {r=255,  g=0,    b=255,  a=1},
            {r=87, g=133, b=160, a =1} }
 
 NUM_EVENTS = 20
-SLICE_MODULO = 3
+
+SLICE_MODULO = 1
 
 -- present-time countdown
 ptc = NUM_EVENTS
@@ -26,6 +28,7 @@ pixlen = 0
  
 -- from now until NUM_EVENTS
 event_ticks = {}
+event_joyheights = {}
 
 -- dunno where we should get this from .. math.??
 function map(x, in_min, in_max, out_min, out_max)
@@ -36,7 +39,6 @@ function setup()
     background(255, 0, 0, 0)
     tick = tick + 1
 
-    cell_size = HEIGHT / 4
     fill (27,73,100,1)
     background(0,0,0,0)
 
@@ -99,6 +101,14 @@ function draw_colors_grids()
 end
 
 function draw_event_labels(i) 
+	fill(colors[2].r, colors[2].g, colors[2].b, colors[2].a)
+
+	rect( (i * 48) - 38, 
+		  screen_h_center,
+		  (i * 48) - 34, 
+		  map(event_joyheights[i], -32768, 32768, cell_size * 2, -cell_size * 2))
+
+    fill (87,133,160,1)
     text((i * 48) - 38, screen_h_center, event_ticks[i] .. " ") 
 end
  
@@ -116,24 +126,29 @@ function draw()
 
     -- time slice
     if ((ptc % SLICE_MODULO) == 0) then
+
         background(0,0,0,1)
+
         --draw_percentile_grid()
         draw_centered_grid()
         --draw_XY_grid()
-        draw_colors_grids()
+
         -- remember our current ptc data
         table.insert(event_ticks, tick)
-
-        fill (87,133,160,1)
+		table.insert(event_joyheights, joystick[1].y)
 
         for i = #event_ticks,1,-1 do
             draw_event_labels(i)
         end
 
+        draw_colors_grids()
+
         -- prune our little stack
         if #event_ticks > NUM_EVENTS then
           table.remove(event_ticks, 1)
+		  table.remove(event_joyheights, 1)
         end
+
     end
 
 end
