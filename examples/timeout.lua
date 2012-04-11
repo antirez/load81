@@ -103,6 +103,11 @@ end
 function draw_event_labels(i) 
 	fill(colors[2].r, colors[2].g, colors[2].b, colors[2].a)
 
+
+	local cn = math.modf(map (joystick[1].x, -32768, 32768, 1, #colors))
+	print(cn)
+	fill (colors[cn].r, colors[cn].g, colors[cn].b, colors[cn].a)
+
 	rect( (i * 48) - 38, 
 		  screen_h_center,
 		  (i * 48) - 34, 
