@@ -1,6 +1,10 @@
  --
 -- display time in all its joy
 --
+-- setup() and draw() are start and main functions
+-- grid is drawn, time is kept on the grid
+-- 
+
 screen_width = WIDTH
 screen_height = HEIGHT
 screen_w_center = screen_width / 2
@@ -97,6 +101,9 @@ end
 
 function draw_event_labels(i) 
     fill(colors[2].r, colors[2].g, colors[2].b, colors[2].a)
+
+--	print(cn)
+	fill (colors[cn].r, colors[cn].g, colors[cn].b, colors[cn].a)
 
     if joystick.count ~= 0 then
         local cn = math.modf(map (joystick[1].x, -32768, 32768, 1, #colors))
