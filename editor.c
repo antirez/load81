@@ -29,7 +29,7 @@ void editorUpdateSyntax(erow *row) {
     char *keywords[] = {
         /* Keywords */
         "function","if","while","for","end","in","do","local","break",
-        "then","pairs","return",
+        "then","pairs","return","else","elseif",
         /* Libs (ending with dots) will be marked as HL_LIB */
         "math.","table.","string.","mouse.","keyboard.",NULL
     };
