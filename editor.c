@@ -326,6 +326,9 @@ int editorOpen(char *filename) {
     FILE *fp;
     char line[1024];
 
+    E.dirty = 0;
+    free(E.filename);
+    E.filename = strdup(filename);
     /* TODO: remove old program from rows. */
     fp = fopen(filename,"r");
     if (!fp) {
@@ -340,9 +343,6 @@ int editorOpen(char *filename) {
         editorInsertRow(E.numrows,line);
     }
     fclose(fp);
-    E.dirty = 0;
-    free(E.filename);
-    E.filename = strdup(filename);
     return 0;
 }
 
