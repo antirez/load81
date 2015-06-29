@@ -323,7 +323,7 @@ void mouseMovedEvent(int x, int y, int xrel, int yrel) {
 
 void mouseButtonEvent(int button, int pressed) {
     char buttonname[32];
-    
+
     snprintf(buttonname,sizeof(buttonname),"%d",button);
     updatePressedState("mouse",buttonname,pressed);
 }

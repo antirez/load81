@@ -320,6 +320,21 @@ void editorDelChar() {
     E.dirty++;
 }
 
+/* Program template used when the input file does not exist. */
+char *editorTemplate[] = {
+    "function setup()",
+    "   -- This function is called only once at startup.",
+    "end",
+    "",
+    "function draw()",
+    "   -- This function is called at every frame refresh.",
+    "    background(0,0,0)",
+    "    fill(200,200,200,1)",
+    "    text(WIDTH/2-150,HEIGHT/2,\"Press ESC to edit this program.\")",
+    "end",
+    NULL
+};
+
 /* Load the specified program in the editor memory and returns 0 on success
  * or 1 on error. */
 int editorOpen(char *filename) {
@@ -332,7 +347,10 @@ int editorOpen(char *filename) {
     /* TODO: remove old program from rows. */
     fp = fopen(filename,"r");
     if (!fp) {
-        perror("fopen loading program into editor");
+        /* No such file, add a template. */
+        int j = 0;
+        while(editorTemplate[j])
+            editorInsertRow(E.numrows,editorTemplate[j++]);
         return 1;
     }
     while(fgets(line,sizeof(line),fp) != NULL) {
