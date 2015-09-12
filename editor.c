@@ -646,6 +646,7 @@ int editorEvents(void) {
             case SDLK_LMETA:
             case SDLK_RMETA:
             case SDLK_CAPSLOCK:
+            case SDLK_MODE:
                 /* Ignored */
                 break;
             case SDLK_TAB:
