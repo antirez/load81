@@ -654,6 +654,8 @@ int editorEvents(void) {
                 break;
             default:
                 editorInsertChar(E.key[j].translation);
+                /* Avoid repetition for special characters. */
+                if (j == SDLK_UNKNOWN) E.key[j].counter = 0;
                 break;
             }
         }
