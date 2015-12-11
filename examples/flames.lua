@@ -10,6 +10,7 @@ function setup()
     refreshCount = 0
     skipCount = 0
     Flames = { }
+    filled(false)
 
     for i=1,MaxFlames do
         x = math.random(WIDTH/3) + (WIDTH/3)
@@ -26,9 +27,11 @@ function draw()
     background(0,0,0)
     for i,f in pairs(Flames) do
         if f.l > 35 then
+            filled(true)
             fill(255, 255, 255, 0.9)
             minMove = 0
         elseif f.l > 30 then
+            filled(false)
             fill(255, 255, 192, 0.8)
             minMove = 1
         elseif f.l > 20 then
