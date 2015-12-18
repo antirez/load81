@@ -345,16 +345,25 @@ void showFPS(void) {
 
 int processSdlEvents(void) {
     SDL_Event event;
+    int ksym, kmod;
 
     resetEvents();
     while (SDL_PollEvent(&event)) {
         switch(event.type) {
         case SDL_KEYDOWN:
-            switch(event.key.keysym.sym) {
+            ksym = event.key.keysym.sym;
+            switch(ksym) {
             case SDLK_ESCAPE:
                 return 1;
                 break;
             default:
+#ifdef __APPLE__
+                kmod = event.key.keysym.mod;
+                if (ksym == SDLK_q && (kmod == KMOD_RMETA || kmod == KMOD_LMETA)) {
+                    exit(0);
+                    break;
+                }
+#endif
                 keyboardEvent(&event.key,1);
                 break;
             }

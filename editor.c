@@ -569,7 +569,7 @@ void editorMoveCursor(int key) {
 
 int editorEvents(void) {
     SDL_Event event;
-    int j, ksym;
+    int j, ksym, kmod;
     time_t idletime;
 
     /* Sleep 0.25 seconds if no body is pressing any key for a few seconds.
@@ -592,6 +592,12 @@ int editorEvents(void) {
                 return 1;
                 break;
             default:
+#ifdef __APPLE__
+                kmod = event.key.keysym.mod;
+                if (ksym == SDLK_q && (kmod == KMOD_RMETA || kmod == KMOD_LMETA)) {
+                    exit(0);
+                } else
+#endif
                 if (ksym >= 0 && ksym < KEY_MAX) {
                     E.key[ksym].counter = 1;
                     E.key[ksym].translation = (event.key.keysym.unicode & 0xff);
