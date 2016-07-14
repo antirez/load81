@@ -1,5 +1,5 @@
 function setup()
-    background(0,0,0,0)
+    background(0,0,0)
 end
 
 function draw()

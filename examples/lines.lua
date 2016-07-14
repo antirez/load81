@@ -1,5 +1,6 @@
 function setup()
-    background(255,0,1);
+    --background(255,0,1);
+    background(0,0,0);
 end
 
 function draw()

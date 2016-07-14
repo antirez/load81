@@ -143,3 +143,5 @@ LICENSE
 
 Load81 was written by Salvatore Sanfilippo and is released under the
 BSD two-clause license, see the COPYING file for more information.
+
+The load81 project is dedicated to Jack Tramiel, founder of Commodore.

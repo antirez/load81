@@ -29,7 +29,7 @@ void editorUpdateSyntax(erow *row) {
     char *keywords[] = {
         /* Keywords */
         "function","if","while","for","end","in","do","local","break",
-        "then","pairs","return",
+        "then","pairs","return","else","elseif",
         /* Libs (ending with dots) will be marked as HL_LIB */
         "math.","table.","string.","mouse.","keyboard.",NULL
     };
@@ -320,16 +320,37 @@ void editorDelChar() {
     E.dirty++;
 }
 
+/* Program template used when the input file does not exist. */
+char *editorTemplate[] = {
+    "function setup()",
+    "   -- This function is called only once at startup.",
+    "end",
+    "",
+    "function draw()",
+    "   -- This function is called at every frame refresh.",
+    "    background(0,0,0)",
+    "    fill(200,200,200,1)",
+    "    text(WIDTH/2-150,HEIGHT/2,\"Press ESC to edit this program.\")",
+    "end",
+    NULL
+};
+
 /* Load the specified program in the editor memory and returns 0 on success
  * or 1 on error. */
 int editorOpen(char *filename) {
     FILE *fp;
     char line[1024];
 
+    E.dirty = 0;
+    free(E.filename);
+    E.filename = strdup(filename);
     /* TODO: remove old program from rows. */
     fp = fopen(filename,"r");
     if (!fp) {
-        perror("fopen loading program into editor");
+        /* No such file, add a template. */
+        int j = 0;
+        while(editorTemplate[j])
+            editorInsertRow(E.numrows,editorTemplate[j++]);
         return 1;
     }
     while(fgets(line,sizeof(line),fp) != NULL) {
@@ -340,9 +361,6 @@ int editorOpen(char *filename) {
         editorInsertRow(E.numrows,line);
     }
     fclose(fp);
-    E.dirty = 0;
-    free(E.filename);
-    E.filename = strdup(filename);
     return 0;
 }
 
@@ -746,6 +764,8 @@ int editorEvents(void) {
             case SDLK_RALT:
             case SDLK_LMETA:
             case SDLK_RMETA:
+            case SDLK_CAPSLOCK:
+            case SDLK_MODE:
                 /* Ignored */
                 break;
             case SDLK_TAB:
@@ -754,6 +774,8 @@ int editorEvents(void) {
                 break;
             default:
                 editorInsertChar(E.key[j].translation);
+                /* Avoid repetition for special characters. */
+                if (j == SDLK_UNKNOWN) E.key[j].counter = 0;
                 break;
             }
         }

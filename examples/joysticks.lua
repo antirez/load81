@@ -10,6 +10,8 @@ colors = {
 {r=0,g=255,b=0,a=1} 
 }
 
+ui_background = "examples/robotoothi_bg.png"
+
 function setup()
     background(0,0,0,0)
     cell_size = HEIGHT / 4;
