@@ -657,6 +657,7 @@ void resetProgram(void) {
     luaopen_string(l81.L);
     luaopen_math(l81.L);
     luaopen_debug(l81.L);
+    luaopen_lfs(l81.L);
     setNumber("WIDTH",l81.width);
     setNumber("HEIGHT",l81.height);
     luaL_loadbuffer(l81.L,initscript,strlen(initscript),"initscript");
