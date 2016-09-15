@@ -20,14 +20,14 @@
     #define fileno(f) (_fileno(f))
   #endif
 #else
-  #define LFS_EXPORT
+  #define LFS_EXPORT	extern
 #endif
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-LFS_EXPORT  int luaopen_lfs (lua_State *L);
+LFS_EXPORT int luaopen_lfs (lua_State *L);
 
 #ifdef __cplusplus
 }
