@@ -1,12 +1,11 @@
 PKGS=sdl SDL_gfx SDL_image
 CFLAGS=-O2 -Wall -W -Ilua/src `sdl-config --cflags` 
-LDLIBS=lua/src/liblua.a -lm `sdl-config --libs` 
+LDLIBS=lua/src/liblua.a -lm `sdl-config --libs` -lSDL_gfx -lSDL_image
 
 # Customizations per-OS
 UNAME := $(shell uname)
 ifeq ($(UNAME), Darwin)
 CFLAGS+=-I/usr/local/Cellar//sdl_gfx/2.0.25/include/SDL/ -I/usr/local/Cellar//sdl_image/1.2.12_3/include/SDL/
-LDLIBS+=-lSDL_gfx -lSDL_image
 endif
 
 all: load81 
