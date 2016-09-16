@@ -1,0 +1,11 @@
+Package: load81
+Version: 0.1-1
+Section: base
+Priority: optional
+Architecture: armhf
+Maintainer: seclorum <seclorum@icloud.com>
+Depends: libsdl-gfx1.2-5 (>=1.2), libsdl-image1.2 (>=1.2)
+Description: antirez' LOAD81 packaged for PocketCHIP.
+ antirez (http://github.com/antirez/load81) created the wonderful
+ load81 development environment, which provides an editor to 
+ create small apps in the Lua programming language.
