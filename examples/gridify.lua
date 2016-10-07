@@ -158,10 +158,10 @@ end
 
 
 function draw_grids()
-    draw_percentile_grid()
-    draw_centered_grid()
+    -- draw_percentile_grid()
+    -- draw_centered_grid()
     draw_XY_grid()
---    draw_colors_grids()
+   draw_colors_grids()
 end
 
 function draw()
