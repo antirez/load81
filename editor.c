@@ -392,7 +392,7 @@ void editorDrawCursor(void) {
     y -= E.margin_top;
     if (!(E.cblink & 0x80)) drawBox(E.fb,x+charmargin,y,
                                 x+charmargin+FONT_KERNING-1,y+FONT_HEIGHT-1,
-                                165,165,255,128);
+                                165,165,255,128,1);
     E.cblink += 4;
 }
 
@@ -430,25 +430,25 @@ void editorDrawChars(void) {
 }
 
 void editorDrawPowerOff(int x, int y) {
-    drawEllipse(E.fb,x,y,12,12,66,66,231,255);
-    drawEllipse(E.fb,x,y,7,7,165,165,255,255);
-    drawBox(E.fb,x-4,y,x+4,y+12,165,165,255,255);
-    drawBox(E.fb,x-2,y,x+2,y+14,66,66,231,255);
+    drawEllipse(E.fb,x,y,12,12,66,66,231,255,1);
+    drawEllipse(E.fb,x,y,7,7,165,165,255,255,1);
+    drawBox(E.fb,x-4,y,x+4,y+12,165,165,255,255,1);
+    drawBox(E.fb,x-2,y,x+2,y+14,66,66,231,255,1);
 }
 
 void editorDrawSaveIcon(int x, int y) {
-    drawBox(E.fb,x-12,y-12,x+12,y+12,66,66,231,255);
-    drawBox(E.fb,x-1,y+7,x+1,y+11,165,165,255,255);
-    drawEllipse(E.fb,x,y,4,4,165,165,255,255);
+    drawBox(E.fb,x-12,y-12,x+12,y+12,66,66,231,255,1);
+    drawBox(E.fb,x-1,y+7,x+1,y+11,165,165,255,255,1);
+    drawEllipse(E.fb,x,y,4,4,165,165,255,255,1);
 }
 
 void editorDraw() {
-    drawBox(E.fb,0,0,E.fb->width-1,E.fb->height-1,165,165,255,255);
+    drawBox(E.fb,0,0,E.fb->width-1,E.fb->height-1,165,165,255,255,1);
     drawBox(E.fb,
             E.margin_left,
             E.margin_bottom,
             E.fb->width-1-E.margin_right,
-            E.fb->height-1-E.margin_top,66,66,231,255);
+            E.fb->height-1-E.margin_top,66,66,231,255,1);
     editorDrawChars();
     editorDrawCursor();
     /* Show buttons */
@@ -491,24 +491,38 @@ void editorMouseClicked(int x, int y, int button) {
     } else if (x >= E.margin_left && x <= E.fb->width-1-E.margin_right &&
                y >= E.margin_bottom && y <= E.fb->height-1-E.margin_top)
     {
-        int realheight = E.fb->height - E.margin_top - E.margin_bottom;
-        int realy = y - E.margin_bottom;
-        int row = (realheight-realy)/FONT_HEIGHT;
-        int col = (x-E.margin_left)/FONT_KERNING;
-        int filerow = E.rowoff+row;
-        int filecol = E.coloff+col;
-        erow *r = (filerow >= E.numrows) ? NULL : &E.row[filerow];
-    
-        E.cblink = 0;
-        if (filerow == E.numrows) {
-            E.cx = 0;
-            E.cy = filerow-E.rowoff;
-        } else if (r) {
-            if (filecol >= r->size)
-                E.cx = r->size-E.coloff;
-            else
-                E.cx = filecol-E.coloff;
-            E.cy = filerow-E.rowoff;
+        if (button == 4) {
+            if (E.rowoff) {
+                E.rowoff--;
+                if (E.cy < E.screenrows - 1) E.cy++;
+            }
+        }
+        else if (button == 5) {
+            if (E.rowoff + E.screenrows < E.numrows) {
+                E.rowoff++;
+                if (E.cy > 0) E.cy--;
+            }
+        }
+        else {
+            int realheight = E.fb->height - E.margin_top - E.margin_bottom;
+            int realy = y - E.margin_bottom;
+            int row = (realheight-realy)/FONT_HEIGHT;
+            int col = (x-E.margin_left)/FONT_KERNING;
+            int filerow = E.rowoff+row;
+            int filecol = E.coloff+col;
+            erow *r = (filerow >= E.numrows) ? NULL : &E.row[filerow];
+        
+            E.cblink = 0;
+            if (filerow == E.numrows) {
+                E.cx = 0;
+                E.cy = filerow-E.rowoff;
+            } else if (r) {
+                if (filecol >= r->size)
+                    E.cx = r->size-E.coloff;
+                else
+                    E.cx = filecol-E.coloff;
+                E.cy = filerow-E.rowoff;
+            }
         }
     }
 }
@@ -518,6 +532,7 @@ void editorMoveCursor(int key) {
     int filecol = E.coloff+E.cx;
     int rowlen;
     erow *row = (filerow >= E.numrows) ? NULL : &E.row[filerow];
+    int temp;
 
     switch(key) {
     case SDLK_LEFT:
@@ -552,6 +567,61 @@ void editorMoveCursor(int key) {
             }
         }
         break;
+    case SDLK_PAGEUP:
+        if (E.rowoff) {
+            E.rowoff -= E.screenrows - 1;
+            if (E.rowoff < 0) {
+                E.rowoff = 0;
+                E.cy = 0;
+            }
+        }
+        else {
+            if (E.cy > 0) E.cy = 0;
+        }
+        break;
+    case SDLK_PAGEDOWN:
+        if (E.rowoff + E.screenrows - 1 < E.numrows) {
+            E.rowoff += E.screenrows - 1;
+            if (E.rowoff + E.screenrows - 1 > E.numrows) E.cy = E.numrows - E.rowoff - 1;
+        }
+        else {
+            E.cy = E.numrows - E.rowoff - 1;
+        }
+        break;
+    case SDLK_HOME:
+        if (E.modifiers & CTRL_MASK) {
+            E.rowoff = E.coloff = E.cy = E.cx = 0;
+        }
+        else {
+            if (row && filecol != 0) {
+                temp = getFirstNonSpace(row);
+                if (temp > -1) {
+                    if (filecol > temp) {
+                        E.cx = temp;
+                        E.coloff = 0;
+                    }
+                    else {
+                        E.cx = E.coloff = 0;
+                    }
+                }
+            }
+        }
+        break;
+    case SDLK_END:
+        if (E.modifiers & CTRL_MASK) {
+            E.rowoff = E.numrows - E.screenrows;
+            E.cy = E.screenrows - 1;
+            E.coloff = E.cx = 0;
+        }
+        else {
+            if (row && filecol < row->size) {
+                if (row->size - E.screencols + 1 > 0) {
+                    E.coloff = row->size - E.screencols + 1;
+                }
+                E.cx = row->size - E.coloff;
+            }
+        }
+        break;
     }
     /* Fix cx if the current line has not enough chars. */
     filerow = E.rowoff+E.cy;
@@ -565,6 +635,16 @@ void editorMoveCursor(int key) {
             E.cx = 0;
         }
     }
+}
+
+int getFirstNonSpace(erow *row) {
+  int i;
+  for (i = 0; i < row->size; i++) {
+      if (row->chars[i] != ' ' && row->chars[i] != '\t') {
+          return i;
+      }
+  }
+  return -1;
 }
 
 int editorEvents(void) {
@@ -596,6 +676,24 @@ int editorEvents(void) {
                     E.key[ksym].counter = 1;
                     E.key[ksym].translation = (event.key.keysym.unicode & 0xff);
                 }
+                switch(ksym) {
+                case SDLK_LSHIFT:
+                case SDLK_RSHIFT:
+                    E.modifiers |= SHIFT_MASK;
+                    break;
+                case SDLK_LCTRL:
+                case SDLK_RCTRL:
+                    E.modifiers |= CTRL_MASK;
+                    break;
+                case SDLK_LALT:
+                case SDLK_RALT:
+                    E.modifiers |= ALT_MASK;
+                    break;
+                case SDLK_LMETA:
+                case SDLK_RMETA:
+                    E.modifiers |= META_MASK;
+                    break;
+                }
                 break;
             }
             break;
@@ -604,6 +702,24 @@ int editorEvents(void) {
         case SDL_KEYUP:
             ksym = event.key.keysym.sym;
             if (ksym >= 0 && ksym < KEY_MAX) E.key[ksym].counter = 0;
+            switch(ksym) {
+            case SDLK_LSHIFT:
+            case SDLK_RSHIFT:
+                E.modifiers &= ~SHIFT_MASK;
+                break;
+            case SDLK_LCTRL:
+            case SDLK_RCTRL:
+                E.modifiers &= ~CTRL_MASK;
+                break;
+            case SDLK_LALT:
+            case SDLK_RALT:
+                E.modifiers &= ~ALT_MASK;
+                break;
+            case SDLK_LMETA:
+            case SDLK_RMETA:
+                E.modifiers &= ~META_MASK;
+                break;
+            }
             break;
         /* Mouse click */
         case SDL_MOUSEBUTTONDOWN:
@@ -628,6 +744,10 @@ int editorEvents(void) {
             case SDLK_RIGHT:
             case SDLK_UP:
             case SDLK_DOWN:
+            case SDLK_PAGEUP:
+            case SDLK_PAGEDOWN:
+            case SDLK_HOME:
+            case SDLK_END:
                 editorMoveCursor(j);
                 break;
             case SDLK_BACKSPACE:
@@ -636,7 +756,6 @@ int editorEvents(void) {
             case SDLK_RETURN:
                 editorInsertNewline();
                 break;
-            case SDLK_HOME:
             case SDLK_LSHIFT:
             case SDLK_RSHIFT:
             case SDLK_LCTRL:
@@ -721,4 +840,5 @@ void initEditor(frameBuffer *fb, int mt, int mb, int ml, int mr) {
     E.dirty = 0;
     E.filename = NULL;
     memset(E.key,0,sizeof(E.key));
+    E.modifiers = 0;
 }

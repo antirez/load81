@@ -28,6 +28,12 @@
 #define HL_FUNCDEF_COLOR {255,255,255}
 #define HL_LIB_COLOR {255,0,255}
 
+/* Key Held Modifier Bit Masks */
+#define CTRL_MASK (1<<0)
+#define SHIFT_MASK (1<<1)
+#define ALT_MASK (1<<2)
+#define META_MASK (1<<3)
+
 typedef struct erow {
     int size;           /* Size of the row, excluding the null term. */
     char *chars;        /* Row content. */
@@ -56,6 +62,7 @@ struct editorConfig {
     erow *row;      /* Rows */
     time_t lastevent;   /* Last event time, so we can go standby */
     keyState key[KEY_MAX];   /* Remember if a key is pressed / repeated. */
+    unsigned int modifiers;  /* Key modifiers held. CTRL & SHIFT & ALT & META  */
     int dirty;      /* File modified but not saved. */
     char *filename; /* Currently open filename */
     frameBuffer *fb;    /* Framebuffer */
@@ -75,5 +82,7 @@ void editorSetError(const char *err, int line);
 void editorClearError(void);
 int editorFileWasModified(void);
 void editorRun(void);
+
+int getFirstNonSpace(erow *row);
 
 #endif /* EDITOR_H */

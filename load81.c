@@ -78,6 +78,72 @@ lua_Number getNumber(char *name) {
     return n;
 }
 
+
+/*  update the table_name[] table, at index, by given field, to num
+    e.g. table_name[1].x = 100
+    stack:
+        table_name              global
+            [1]                 index
+                .x              field
+                    = 100       number
+*/
+void setArrayFieldNumber( char *table_name, int index, char *field, int number)
+{
+    lua_getglobal(l81.L, table_name);
+
+    /* Create new if needed */
+    if (lua_isnil(l81.L,-1)) {
+        lua_pop(l81.L,1);
+        lua_newtable(l81.L);
+        lua_setglobal(l81.L, table_name);
+        lua_getglobal(l81.L, table_name);
+    }
+
+    /* lua: table_named[index].field = value  */ 
+    if (lua_istable(l81.L, -1)) {
+        lua_pushnumber(l81.L, index);
+        /* get table for modification */
+        lua_gettable(l81.L, -2);    
+        lua_pushstring(l81.L, field);
+        lua_pushnumber(l81.L, number);
+        lua_settable(l81.L, -3);
+    }
+
+    lua_pop(l81.L, 2);
+}
+
+/* 
+    update the table_name[] table, .name field
+    e.g. table_name[1].name = "nub0"
+    stack:
+        table_name              global
+            [1]                 joynum
+                .name           field
+                    = "nub0"    value
+*/
+void setArrayFieldString(char *table_name, int index, char *field, const char *value)
+{
+    lua_getglobal(l81.L, table_name);
+    if (lua_isnil(l81.L,-1)) {
+        lua_pop(l81.L,1);
+        lua_newtable(l81.L);
+        lua_setglobal(l81.L,table_name);
+        lua_getglobal(l81.L,table_name);
+    }
+ 
+    if (lua_istable(l81.L, -1)) {
+        lua_pushnumber(l81.L, index);
+        /* get table for modification */
+        lua_gettable(l81.L, -2);
+        lua_pushstring(l81.L, field);
+        lua_pushstring(l81.L, value);
+        lua_settable(l81.L, -3);
+    }
+
+    lua_pop(l81.L, 2);
+}
+
+
 /* Set a Lua global table field to the value on the top of the Lua stack. */
 void setTableField(char *name, char *field) {
     lua_getglobal(l81.L,name);          /* Stack: val table */
@@ -135,6 +201,11 @@ int fillBinding(lua_State *L) {
     return 0;
 }
 
+int filledBinding(lua_State *L) {
+  l81.filled = lua_toboolean(L,-1);
+  return 0;
+}
+
 int rectBinding(lua_State *L) {
     int x,y,w,h;
 
@@ -142,7 +213,7 @@ int rectBinding(lua_State *L) {
     y = lua_tonumber(L,-3);
     w = lua_tonumber(L,-2);
     h = lua_tonumber(L,-1);
-    drawBox(l81.fb,x,y,x+(w-1),y+(h-1),l81.r,l81.g,l81.b,l81.alpha);
+    drawBox(l81.fb,x,y,x+(w-1),y+(h-1),l81.r,l81.g,l81.b,l81.alpha,l81.filled);
     return 0;
 }
 
@@ -153,7 +224,7 @@ int ellipseBinding(lua_State *L) {
     y = lua_tonumber(L,-3);
     rx = lua_tonumber(L,-2);
     ry = lua_tonumber(L,-1);
-    drawEllipse(l81.fb,x,y,rx,ry,l81.r,l81.g,l81.b,l81.alpha);
+    drawEllipse(l81.fb,x,y,rx,ry,l81.r,l81.g,l81.b,l81.alpha,l81.filled);
     return 0;
 }
 
@@ -166,7 +237,7 @@ int triangleBinding(lua_State *L) {
     y2 = lua_tonumber(L,-3);
     x3 = lua_tonumber(L,-2);
     y3 = lua_tonumber(L,-1);
-    drawTriangle(l81.fb,x1,y1,x2,y2,x3,y3,l81.r,l81.g,l81.b,l81.alpha);
+    drawTriangle(l81.fb,x1,y1,x2,y2,x3,y3,l81.r,l81.g,l81.b,l81.alpha,l81.filled);
     return 0;
 }
 
@@ -212,6 +283,49 @@ int backgroundBinding(lua_State *L) {
     return 0;
 }
 
+int polygonBinding(lua_State *L) {
+  Sint16* polyBufferX;
+  Sint16* polyBufferY;
+
+  if (!(lua_gettop(L) == 2 && lua_istable(L,-1) && lua_istable(L,-2))) {
+      programError("Invalid arguments for polygon");
+      return 0;
+  }
+
+  int size = (int)lua_objlen(L,-1), i=0;
+  polyBufferY = (Sint16*)malloc(size * sizeof(Sint16));
+  lua_pushnil(L);
+  while(lua_next(L,-2) != 0) {
+    polyBufferY[i++] = (Sint16)lua_tonumber(L,-1);
+    lua_pop(L,1);
+    if (i > size) break;
+  }
+
+  lua_pop(L,1);
+
+  if (size != (int)lua_objlen(L,-1)) {
+    programError("Array size mismatch in call to polygon");
+    return 0;
+  }
+  polyBufferX = (Sint16*)malloc(size * sizeof(Sint16));
+  lua_pushnil(L);
+  i=0;
+  while(lua_next(L,-2) != 0) {
+    polyBufferX[i++] = (Sint16)lua_tonumber(L,-1);
+    lua_pop(L,1);
+    if (i > size) break;
+  }
+
+  drawPolygon(l81.fb, polyBufferX, polyBufferY, size, l81.r, l81.g, l81.b, l81.alpha, l81.filled);
+
+  free(polyBufferX);
+  free(polyBufferY);
+  return 0;
+}
+
+
+
+
 int getpixelBinding(lua_State *L) {
     Uint32 pixel;
     Uint8 r, g, b;
@@ -255,15 +369,16 @@ int getpixelBinding(lua_State *L) {
 int spriteBinding(lua_State *L) {
     const char *filename;
     int x, y, angle, antialiasing;
-    void *sprite;
+    sprite *sprite;
 
     filename = lua_tostring(L, 1);
-    x = lua_tonumber(L, 2);
-    y = lua_tonumber(L, 3);
+    x = luaL_optnumber(L, 2, -1);
+    y = luaL_optnumber(L, 3, -1);
     angle = luaL_optnumber(L,4,0);
     antialiasing = lua_toboolean(L,5);
     sprite = spriteLoad(L,filename);
-    spriteBlit(l81.fb, sprite, x, y, angle, antialiasing);
+    if (x >= 0 && y >= 0)
+      spriteBlit(l81.fb, sprite, x, y, -1, angle, antialiasing);
     return 1;
 }
 
@@ -328,6 +443,24 @@ void mouseButtonEvent(int button, int pressed) {
     updatePressedState("mouse",buttonname,pressed);
 }
 
+void joystickXMovedEvent(int joy_num, Sint16 x) { 
+    if (joy_num < MAX_JOYSTICKS) {
+        setArrayFieldNumber("joystick", joy_num, "x", x);
+    }
+}
+
+void joystickYMovedEvent(int joy_num, Sint16 y) { 
+    if (joy_num < MAX_JOYSTICKS) {
+        setArrayFieldNumber("joystick", joy_num, "y", y);
+    }
+}
+void joystickButtonEvent(int joy_num, int down)
+{
+    if (joy_num < MAX_JOYSTICKS) {
+        setArrayFieldNumber("joystick", joy_num, "button", down);
+    }    
+}
+
 void resetEvents(void) {
     setTableFieldString("keyboard","state","none");
     setTableFieldString("keyboard","key","");
@@ -339,7 +472,7 @@ void showFPS(void) {
 
     if (!elapsed_ms) return;
     snprintf(buf,sizeof(buf),"FPS: %.2f",(float)(l81.epoch*1000)/elapsed_ms);
-    drawBox(l81.fb,0,0,100,20,0,0,0,255);
+    drawBox(l81.fb,0,0,100,20,0,0,0,255,1);
     bfWriteString(l81.fb,0,0,buf,strlen(buf),128,128,128,255);
 }
 
@@ -372,6 +505,21 @@ int processSdlEvents(void) {
         case SDL_MOUSEBUTTONUP:
             mouseButtonEvent(event.button.button,0);
             break;
+        case SDL_JOYAXISMOTION:  /* Handle Joystick Motion */
+            if( event.jaxis.axis == 0) { /* x-axis */
+                joystickXMovedEvent(event.jaxis.which + 1, event.jaxis.value);  /* C vs. Lua offsets */
+            }
+            if( event.jaxis.axis == 1) { /* y-axis */
+                joystickYMovedEvent(event.jaxis.which + 1, event.jaxis.value);  /* C vs. Lua offsets */
+            }
+        break;
+        case SDL_JOYBUTTONUP:  /* Handle Joystick Button Presses */
+            joystickButtonEvent(event.jbutton.which + 1, 0);
+        break;
+        case SDL_JOYBUTTONDOWN:  /* Handle Joystick Button Presses */
+            joystickButtonEvent(event.jbutton.which + 1, 1);
+        break;
+
         case SDL_QUIT:
             exit(0);
             break;
@@ -413,6 +561,7 @@ void initConfig(void) {
     l81.r = 255;
     l81.g = l81.b = 0;
     l81.alpha = 255;
+    l81.filled = 1;
     l81.L = NULL;
     l81.luaerr = 0;
     l81.opt_show_fps = 0;
@@ -446,10 +595,58 @@ void initScreen(void) {
                                l81.bpp,l81.opt_full_screen);
 }
 
+void initJoysticks(frameBuffer *fb) {
+    int cur_joy;
+    for(cur_joy=0; cur_joy < MAX_JOYSTICKS; cur_joy++ ) {
+        fb->joysticks[cur_joy] = NULL;
+    }
+}
+
+void resetJoysticks(frameBuffer *fb) { 
+    int cur_joy, sdl_joys, num_joys;
+    char joyscript[70];
+
+    /* Initialize Joysticks */
+    SDL_JoystickEventState(SDL_ENABLE);
+
+
+    for(sdl_joys = SDL_NumJoysticks(), cur_joy=0, num_joys=0; cur_joy < sdl_joys; cur_joy++ ) {
+    
+        if (cur_joy == 0) {
+            snprintf(joyscript, sizeof(joyscript),
+                "for jn = 1, %d, 1 do joystick[jn]={x=0;y=0;name=nil;button=0}; end ", sdl_joys);
+            luaL_loadbuffer(l81.L,joyscript,strlen(joyscript),"joyscript");
+            lua_pcall(l81.L,0,0,0);
+        }
+
+        if (fb->joysticks[cur_joy] != NULL)
+            SDL_JoystickClose( fb->joysticks[cur_joy]);
+
+        if (cur_joy < MAX_JOYSTICKS) {
+            fb->joysticks[cur_joy] = SDL_JoystickOpen(cur_joy);
+
+            if (fb->joysticks[cur_joy] != NULL) {
+                setArrayFieldString("joystick", cur_joy + 1, "name", SDL_JoystickName(cur_joy));
+                setArrayFieldNumber("joystick", cur_joy + 1, "axes", SDL_JoystickNumAxes(fb->joysticks[cur_joy]));
+                setArrayFieldNumber("joystick", cur_joy + 1, "trackballs", SDL_JoystickNumBalls(fb->joysticks[cur_joy]));
+                setArrayFieldNumber("joystick", cur_joy + 1, "hats", SDL_JoystickNumHats(fb->joysticks[cur_joy]));
+                setArrayFieldNumber("joystick", cur_joy + 1, "buttons", SDL_JoystickNumButtons(fb->joysticks[cur_joy]));
+                setArrayFieldNumber("joystick", cur_joy + 1, "x", 0);
+                setArrayFieldNumber("joystick", cur_joy + 1, "y", 0);
+                num_joys ++;
+            }
+        }
+    }
+
+    setTableFieldNumber("joystick", "count", num_joys);
+}
+
+
 void resetProgram(void) {
     char *initscript =
-        "keyboard={}; keyboard['pressed']={};"
-        "mouse={}; mouse['pressed']={};"
+        "keyboard={}; keyboard['pressed']={};" \
+        "mouse={}; mouse['pressed']={};" \
+        "joystick={}; " \
         "sprites={}";
 
     l81.epoch = 0;
@@ -460,6 +657,7 @@ void resetProgram(void) {
     luaopen_string(l81.L);
     luaopen_math(l81.L);
     luaopen_debug(l81.L);
+    luaopen_lfs(l81.L);
     setNumber("WIDTH",l81.width);
     setNumber("HEIGHT",l81.height);
     luaL_loadbuffer(l81.L,initscript,strlen(initscript),"initscript");
@@ -472,9 +670,14 @@ void resetProgram(void) {
     setTableFieldNumber("mouse","xrel",0);
     setTableFieldNumber("mouse","yrel",0);
 
+    /* Reset joysticks */
+    resetJoysticks(l81.fb);
+    
     /* Register API */
     lua_pushcfunction(l81.L,fillBinding);
     lua_setglobal(l81.L,"fill");
+    lua_pushcfunction(l81.L,filledBinding);
+    lua_setglobal(l81.L,"filled");
     lua_pushcfunction(l81.L,rectBinding);
     lua_setglobal(l81.L,"rect");
     lua_pushcfunction(l81.L,ellipseBinding);
@@ -493,6 +696,8 @@ void resetProgram(void) {
     lua_setglobal(l81.L,"getpixel");
     lua_pushcfunction(l81.L,spriteBinding);
     lua_setglobal(l81.L,"sprite");
+    lua_pushcfunction(l81.L,polygonBinding);
+    lua_setglobal(l81.L,"polygon");
 
     initSpriteEngine(l81.L);
 
@@ -562,6 +767,7 @@ int main(int argc, char **argv) {
     initConfig();
     parseOptions(argc,argv);
     initScreen();
+    initJoysticks(l81.fb);
     initEditor(l81.fb,30,30,30,30);
     editorOpen(l81.filename);
     while(1) {
