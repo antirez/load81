@@ -1,3 +1,4 @@
+
 PKGS=sdl SDL_gfx SDL_image
 CFLAGS=-O2 -Wall -W -Ilua/src `sdl-config --cflags` 
 LDLIBS=lua/src/liblua.a -lm `sdl-config --libs` -lSDL_gfx -lSDL_image
@@ -26,3 +27,4 @@ distclean: clean
 
 dep:
 	$(CC) -MM *.c
+
