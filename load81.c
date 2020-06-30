@@ -252,6 +252,16 @@ int getpixelBinding(lua_State *L) {
     return 3;
 }
 
+int setpixelBinding(lua_State *L) {
+    int x, y;
+
+    x = lua_tonumber(L,-2);
+    y = lua_tonumber(L,-1);
+
+    setPixelWithAlpha(l81.fb,x,y,l81.r,l81.g,l81.b,l81.alpha);
+    return 0;
+}
+
 int spriteBinding(lua_State *L) {
     const char *filename;
     int x, y, angle, antialiasing;
@@ -491,6 +501,8 @@ void resetProgram(void) {
     lua_setglobal(l81.L,"setFPS");
     lua_pushcfunction(l81.L,getpixelBinding);
     lua_setglobal(l81.L,"getpixel");
+    lua_pushcfunction(l81.L,setpixelBinding);
+    lua_setglobal(l81.L,"setpixel");
     lua_pushcfunction(l81.L,spriteBinding);
     lua_setglobal(l81.L,"sprite");
 
