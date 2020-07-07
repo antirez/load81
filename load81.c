@@ -310,10 +310,18 @@ void updatePressedState(char *object, char *keyname, int pressed) {
 
 void keyboardEvent(SDL_KeyboardEvent *key, int down) {
     char *keyname = (char*)SDL_GetKeyName(key->keysym.sym);
+    size_t keylen = strlen(keyname);
+
+    /* SDL2 key names are no longer lowercase by default, so we need
+     * to convert them. */
+    char buf[32];
+    if (keylen >= sizeof(buf)) keylen = sizeof(buf)-1;
+    for (size_t j = 0; j < keylen; j++) buf[j] = tolower(keyname[j]);
+    buf[keylen] = 0;
 
     setTableFieldString("keyboard","state",down ? "down" : "up");
-    setTableFieldString("keyboard","key",keyname);
-    updatePressedState("keyboard",keyname,down);
+    setTableFieldString("keyboard","key",buf);
+    updatePressedState("keyboard",buf,down);
 }
 
 void mouseMovedEvent(int x, int y, int xrel, int yrel) {
