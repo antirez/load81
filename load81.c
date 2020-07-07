@@ -213,6 +213,7 @@ int backgroundBinding(lua_State *L) {
 }
 
 int getpixelBinding(lua_State *L) {
+#if 0
     Uint32 pixel;
     Uint8 r, g, b;
     int x, y;
@@ -250,6 +251,7 @@ int getpixelBinding(lua_State *L) {
     lua_pushnumber(L,g);
     lua_pushnumber(L,b);
     return 3;
+#endif
 }
 
 int spriteBinding(lua_State *L) {
@@ -307,7 +309,7 @@ void updatePressedState(char *object, char *keyname, int pressed) {
 }
 
 void keyboardEvent(SDL_KeyboardEvent *key, int down) {
-    char *keyname = SDL_GetKeyName(key->keysym.sym);
+    char *keyname = (char*)SDL_GetKeyName(key->keysym.sym);
 
     setTableFieldString("keyboard","state",down ? "down" : "up");
     setTableFieldString("keyboard","key",keyname);
@@ -379,7 +381,9 @@ int processSdlEvents(void) {
         /* If the next event to process is of type KEYUP or
          * MOUSEBUTTONUP we want to stop processing here, so that
          * a fast up/down event be noticed by Lua. */
-        if (SDL_PeepEvents(&event,1,SDL_PEEKEVENT,SDL_ALLEVENTS)) {
+        if (SDL_PeepEvents(&event,1,SDL_PEEKEVENT,SDL_FIRSTEVENT,
+                                    SDL_LASTEVENT))
+        {
             if (event.type == SDL_KEYUP ||
                 event.type == SDL_MOUSEBUTTONUP)
                 break; /* Go to lua before processing more. */
@@ -396,7 +400,7 @@ int processSdlEvents(void) {
     l81.epoch++;
     /* Refresh the screen */
     if (l81.opt_show_fps) showFPS();
-    SDL_Flip(l81.fb->screen);
+    SDL_RenderPresent(l81.fb->renderer);
     /* Wait some time if the frame was produced in less than 1/FPS seconds. */
     SDL_framerateDelay(&l81.fb->fps_mgr);
     /* Stop execution on error */
@@ -408,7 +412,6 @@ int processSdlEvents(void) {
 void initConfig(void) {
     l81.width = DEFAULT_WIDTH;
     l81.height = DEFAULT_HEIGHT;
-    l81.bpp = DEFAULT_BPP;
     l81.fps = 30;
     l81.r = 255;
     l81.g = l81.b = 0;
@@ -443,7 +446,7 @@ int loadProgram(void) {
 
 void initScreen(void) {
     l81.fb = createFrameBuffer(l81.width,l81.height,
-                               l81.bpp,l81.opt_full_screen);
+                               l81.opt_full_screen);
 }
 
 void resetProgram(void) {
@@ -507,7 +510,6 @@ void showCliHelp(void) {
 "  --width <pixels>       Set screen width\n"
 "  --height <pixels>      Set screen height\n"
 "  --full                 Enable full screen mode\n"
-"  --bpp                  SDL bit per pixel setting (default=24, 0=hardware)\n"
 "  --fps                  Show frames per second\n"
 "  --help                 Show this help screen\n"
            );
@@ -529,14 +531,6 @@ void parseOptions(int argc, char **argv) {
             l81.width = atoi(argv[++j]);
         } else if (!strcasecmp(arg,"--height") && !lastarg) {
             l81.height = atoi(argv[++j]);
-        } else if (!strcasecmp(arg,"--bpp") && !lastarg) {
-            l81.bpp = atoi(argv[++j]);
-            if (l81.bpp != 8 && l81.bpp != 16 && l81.bpp != 24 && l81.bpp != 32
-                && l81.bpp != 0)
-            {
-                fprintf(stderr,"Invalid bit per pixel. Try with: 8, 16, 24, 32 or 0 for auto-select the hardware default.");
-                exit(1);
-            }
         } else if (!strcasecmp(arg,"--help")) {
             showCliHelp();
         } else {

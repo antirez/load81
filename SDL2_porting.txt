@@ -1,0 +1,3 @@
+Fix getpixel Lua binding
+Fix sprites blittering
+Fix keyboard events

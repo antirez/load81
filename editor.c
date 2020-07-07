@@ -498,7 +498,7 @@ void editorMouseClicked(int x, int y, int button) {
         int filerow = E.rowoff+row;
         int filecol = E.coloff+col;
         erow *r = (filerow >= E.numrows) ? NULL : &E.row[filerow];
-    
+
         E.cblink = 0;
         if (filerow == E.numrows) {
             E.cx = 0;
@@ -584,6 +584,11 @@ int editorEvents(void) {
     while (SDL_PollEvent(&event)) {
         E.lastevent = time(NULL);
         switch(event.type) {
+        /* Text inserted. */
+        case SDL_TEXTINPUT:
+            for (int j = 0; event.text.text[j]; j++)
+                editorInsertChar(event.text.text[j]);
+            break;
         /* Key pressed */
         case SDL_KEYDOWN:
             ksym = event.key.keysym.sym;
@@ -594,7 +599,7 @@ int editorEvents(void) {
             default:
                 if (ksym >= 0 && ksym < KEY_MAX) {
                     E.key[ksym].counter = 1;
-                    E.key[ksym].translation = (event.key.keysym.unicode & 0xff);
+                    E.key[ksym].translation = 0; /* SDL2 hasn't this. */
                 }
                 break;
             }
@@ -643,8 +648,8 @@ int editorEvents(void) {
             case SDLK_RCTRL:
             case SDLK_LALT:
             case SDLK_RALT:
-            case SDLK_LMETA:
-            case SDLK_RMETA:
+            case SDLK_LGUI:
+            case SDLK_RGUI:
             case SDLK_CAPSLOCK:
             case SDLK_MODE:
                 /* Ignored */
@@ -654,7 +659,6 @@ int editorEvents(void) {
                     editorInsertChar(' ');
                 break;
             default:
-                editorInsertChar(E.key[j].translation);
                 /* Avoid repetition for special characters. */
                 if (j == SDLK_UNKNOWN) E.key[j].counter = 0;
                 break;
@@ -666,14 +670,14 @@ int editorEvents(void) {
     /* Call the draw function at every iteration.  */
     editorDraw();
     /* Refresh the screen */
-    SDL_Flip(E.fb->screen);
+    SDL_RenderPresent(E.fb->renderer);
     SDL_framerateDelay(&E.fb->fps_mgr);
     return 0;
 }
 
 void editorSetError(const char *err, int line) {
     erow *row;
-    
+
     free(E.err);
     E.err = strdup(err);
     E.errline = line;

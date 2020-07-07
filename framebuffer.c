@@ -3,34 +3,45 @@
 static unsigned char *BitmapFont[256];
 
 /* ============================= Frame buffer ============================== */
-SDL_Surface *sdlInit(int width, int height, int bpp, int fullscreen) {
-    int flags = SDL_SWSURFACE;
-    SDL_Surface *screen;
+void sdlInit(frameBuffer *fb, int fullscreen) {
+    int flags = SDL_WINDOW_OPENGL;
 
-    if (fullscreen) flags |= SDL_FULLSCREEN;
+    if (fullscreen) flags |= SDL_WINDOW_FULLSCREEN;
     if (SDL_Init(SDL_INIT_VIDEO) == -1) {
         fprintf(stderr, "SDL Init error: %s\n", SDL_GetError());
-        return NULL;
+        exit(1);
     }
     atexit(SDL_Quit);
-    screen = SDL_SetVideoMode(width,height,bpp,flags);
-    if (!screen) {
-        fprintf(stderr, "Can't set the video mode: %s\n", SDL_GetError());
-        return NULL;
+    fb->screen = SDL_CreateWindow("Load81",
+                              SDL_WINDOWPOS_UNDEFINED,
+                              SDL_WINDOWPOS_UNDEFINED,
+                              fb->width,fb->height,flags);
+    if (!fb->screen) {
+        fprintf(stderr, "Can't create SDL window: %s\n", SDL_GetError());
+        exit(1);
     }
-    /* Unicode support makes dealing with text input in SDL much simpler as
-     * keys are translated into characters with automatic support for modifiers
-     * (for instance shift modifier to print capital letters and symbols). */
-    SDL_EnableUNICODE(SDL_ENABLE);
-    return screen;
+
+    fb->renderer = SDL_CreateRenderer(fb->screen,-1,0);
+    if (!fb->renderer) {
+        fprintf(stderr, "Can't create SDL renderer: %s\n", SDL_GetError());
+        exit(1);
+    }
+
+    fb->texture = SDL_CreateTexture(fb->renderer,SDL_PIXELFORMAT_RGB24,
+                                    SDL_TEXTUREACCESS_STREAMING,
+                                    fb->width,fb->height);
+    if (!fb->texture) {
+        fprintf(stderr, "Can't create SDL texture: %s\n", SDL_GetError());
+        exit(1);
+    }
 }
 
-frameBuffer *createFrameBuffer(int width, int height, int bpp, int fullscreen) {
+frameBuffer *createFrameBuffer(int width, int height, int fullscreen) {
     frameBuffer *fb = malloc(sizeof(*fb));
 
     fb->width = width;
     fb->height = height;
-    fb->screen = sdlInit(width,height,bpp,fullscreen);
+    sdlInit(fb,fullscreen);
     SDL_initFramerate(&fb->fps_mgr);
     /* Load the bitmap font */
     bfLoadFont((char**)BitmapFont);
@@ -38,33 +49,33 @@ frameBuffer *createFrameBuffer(int width, int height, int bpp, int fullscreen) {
 }
 
 void setPixelWithAlpha(frameBuffer *fb, int x, int y, int r, int g, int b, int alpha) {
-    pixelRGBA(fb->screen, x, fb->height-1-y, r, g, b, alpha);
+    pixelRGBA(fb->renderer, x, fb->height-1-y, r, g, b, alpha);
 }
 
 void fillBackground(frameBuffer *fb, int r, int g, int b) {
-    boxRGBA(fb->screen, 0, 0, fb->width-1, fb->height-1, r, g, b, 255);
+    boxRGBA(fb->renderer, 0, 0, fb->width-1, fb->height-1, r, g, b, 255);
 }
 
 /* ========================== Drawing primitives ============================ */
 
 void drawHline(frameBuffer *fb, int x1, int x2, int y, int r, int g, int b, int alpha) {
-    hlineRGBA(fb->screen, x1, x2, fb->height-1-y, r, g, b, alpha);
+    hlineRGBA(fb->renderer, x1, x2, fb->height-1-y, r, g, b, alpha);
 }
 
 void drawEllipse(frameBuffer *fb, int xc, int yc, int radx, int rady, int r, int g, int b, int alpha) {
-    filledEllipseRGBA(fb->screen, xc, fb->height-1-yc, radx, rady, r, g, b, alpha);
+    filledEllipseRGBA(fb->renderer, xc, fb->height-1-yc, radx, rady, r, g, b, alpha);
 }
 
 void drawBox(frameBuffer *fb, int x1, int y1, int x2, int y2, int r, int g, int b, int alpha) {
-    boxRGBA(fb->screen, x1, fb->height-1-y1, x2, fb->height-1-y2, r, g, b, alpha);
+    boxRGBA(fb->renderer, x1, fb->height-1-y1, x2, fb->height-1-y2, r, g, b, alpha);
 }
 
 void drawTriangle(frameBuffer *fb, int x1, int y1, int x2, int y2, int x3, int y3, int r, int g, int b, int alpha) {
-    filledTrigonRGBA(fb->screen, x1, fb->height-1-y1, x2, fb->height-1-y2, x3, fb->height-1-y3, r, g, b, alpha);
+    filledTrigonRGBA(fb->renderer, x1, fb->height-1-y1, x2, fb->height-1-y2, x3, fb->height-1-y3, r, g, b, alpha);
 }
 
 void drawLine(frameBuffer *fb, int x1, int y1, int x2, int y2, int r, int g, int b, int alpha) {
-    lineRGBA(fb->screen, x1, fb->height-1-y1, x2, fb->height-1-y2, r, g, b, alpha);
+    lineRGBA(fb->renderer, x1, fb->height-1-y1, x2, fb->height-1-y2, r, g, b, alpha);
 }
 
 /* ============================= Bitmap font =============================== */
@@ -110,7 +121,7 @@ void spriteBlit(frameBuffer *fb, void *sprite, int x, int y, int angle, int aa) 
     if (s == NULL) return;
     if (angle) s = rotozoomSurface(s,angle,1,aa);
     SDL_Rect dst = {x, fb->height-1-y - s->h, s->w, s->h};
-    SDL_BlitSurface(s, NULL, fb->screen, &dst);
+    SDL_BlitSurface(s, NULL, fb->renderer, &dst);
     if (angle) SDL_FreeSurface(s);
 }
 
@@ -124,7 +135,7 @@ void *spriteLoad(lua_State *L, const char *filename) {
     if (lua_isnil(L, -1)) {
         /* load image into surface */
         SDL_Surface *ps = IMG_Load(filename);
-        if (ps == NULL) {   
+        if (ps == NULL) {
             luaL_error(L, "failed to load sprite %s", filename);
             return NULL;
         }
@@ -138,7 +149,7 @@ void *spriteLoad(lua_State *L, const char *filename) {
         lua_setmetatable(L, -2);
 
         /* cache loaded surface in sprite table */
-        lua_pushvalue(L, -1); 
+        lua_pushvalue(L, -1);
         lua_setfield(L, -4, filename);
     } else {
         /* unbox surface pointer */

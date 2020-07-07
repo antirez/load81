@@ -2,10 +2,10 @@
 #define FRAMEBUFFER_H
 
 #include <SDL.h>
-#include <SDL_gfxPrimitives.h>
-#include <SDL_framerate.h>
+#include <SDL2_gfxPrimitives.h>
+#include <SDL2_framerate.h>
 #include <SDL_image.h>
-#include <SDL_rotozoom.h>
+#include <SDL2_rotozoom.h>
 #include <lua.h>
 #include <lauxlib.h>
 #include <lualib.h>
@@ -17,12 +17,14 @@
 typedef struct frameBuffer {
     int width;
     int height;
-    SDL_Surface *screen;
+    SDL_Window *screen;
+    SDL_Renderer *renderer;
+    SDL_Texture *texture;
     FPSmanager fps_mgr;
 } frameBuffer;
 
 /* Frame buffer */
-frameBuffer *createFrameBuffer(int width, int height, int bpp, int fullscreen);
+frameBuffer *createFrameBuffer(int width, int height, int fullscreen);
 
 /* Drawing primitives */
 void setPixelWithAlpha(frameBuffer *fb, int x, int y, int r, int g, int b, int alpha);

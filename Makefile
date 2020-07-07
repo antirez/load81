@@ -1,4 +1,4 @@
-PKGS=sdl SDL_gfx SDL_image
+PKGS=sdl2 SDL2_gfx SDL2_image
 CFLAGS=-O2 -Wall -W -Ilua/src `pkg-config --cflags $(PKGS)`
 LDLIBS=lua/src/liblua.a -lm `pkg-config --libs $(PKGS)`
 
