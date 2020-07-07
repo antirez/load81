@@ -1,3 +1,4 @@
 Fix getpixel Lua binding
 Fix sprites blittering
 Fix keyboard events
+Lines demo flickers for some reason

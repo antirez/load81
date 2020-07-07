@@ -35,7 +35,7 @@ typedef struct erow {
 } erow;
 
 typedef struct keyState {
-    char translation;
+    int ksym;
     int counter;
 } keyState;
 
@@ -43,7 +43,7 @@ typedef struct hlcolor {
     int r,g,b;
 } hlcolor;
 
-#define KEY_MAX 512 /* Latest key is excluded */
+#define KEY_MAX 32 /* Max number of key events we can store at the same time. */
 struct editorConfig {
     int cx,cy;  /* Cursor x and y position in characters */
     unsigned char cblink; /* Show cursor if (cblink & 0x80) == 0 */

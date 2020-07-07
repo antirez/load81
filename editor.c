@@ -567,6 +567,20 @@ void editorMoveCursor(int key) {
     }
 }
 
+/* Scan the array of currently pressed keys, and return the matching entry
+ * if any, otherwise return one of the free entries. */
+keyState *editorGetKeyState(int ksym) {
+    int free = -1;
+    for (int j = 0; j < KEY_MAX; j++) {
+        if (E.key[j].ksym == ksym) return &E.key[j];
+        if (E.key[j].ksym == 0) free = j;
+    }
+    if (free == -1) return NULL;
+    E.key[free].ksym = ksym;
+    E.key[free].counter = 0;
+    return &E.key[free];
+}
+
 int editorEvents(void) {
     SDL_Event event;
     int j, ksym;
@@ -597,9 +611,9 @@ int editorEvents(void) {
                 return 1;
                 break;
             default:
-                if (ksym >= 0 && ksym < KEY_MAX) {
-                    E.key[ksym].counter = 1;
-                    E.key[ksym].translation = 0; /* SDL2 hasn't this. */
+                {
+                    keyState *ks = editorGetKeyState(ksym);
+                    if (ks) ks->counter = 1;
                 }
                 break;
             }
@@ -608,7 +622,11 @@ int editorEvents(void) {
         /* Key released */
         case SDL_KEYUP:
             ksym = event.key.keysym.sym;
-            if (ksym >= 0 && ksym < KEY_MAX) E.key[ksym].counter = 0;
+            keyState *ks = editorGetKeyState(ksym);
+            if (ks) {
+                ks->counter = 0;
+                ks->ksym = 0;
+            }
             break;
         /* Mouse click */
         case SDL_MOUSEBUTTONDOWN:
@@ -628,12 +646,13 @@ int editorEvents(void) {
         if (pressed_or_repeated(E.key[j].counter)) {
             E.lastevent = time(NULL);
             E.cblink = 0;
-            switch(j) {
+            int sym = E.key[j].ksym;
+            switch(sym) {
             case SDLK_LEFT:
             case SDLK_RIGHT:
             case SDLK_UP:
             case SDLK_DOWN:
-                editorMoveCursor(j);
+                editorMoveCursor(sym);
                 break;
             case SDLK_BACKSPACE:
                 editorDelChar();
@@ -660,7 +679,10 @@ int editorEvents(void) {
                 break;
             default:
                 /* Avoid repetition for special characters. */
-                if (j == SDLK_UNKNOWN) E.key[j].counter = 0;
+                if (sym == SDLK_UNKNOWN) {
+                    E.key[j].counter = 0;
+                    E.key[j].ksym = 0;
+                }
                 break;
             }
         }
