@@ -25,6 +25,7 @@ typedef struct frameBuffer {
 
 /* Frame buffer */
 frameBuffer *createFrameBuffer(int width, int height, int fullscreen);
+void presentFrameBuffer(frameBuffer *fb);
 
 /* Drawing primitives */
 void setPixelWithAlpha(frameBuffer *fb, int x, int y, int r, int g, int b, int alpha);

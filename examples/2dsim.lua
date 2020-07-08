@@ -69,6 +69,6 @@ function draw()
     end
 
     -- Draw the ball at the new position.
-    fill(255,0,0,1)
+    fill(255,255,0,1)
     ellipse(x,y,RADIUS,RADIUS)
 end

@@ -692,8 +692,7 @@ int editorEvents(void) {
     /* Call the draw function at every iteration.  */
     editorDraw();
     /* Refresh the screen */
-    SDL_RenderPresent(E.fb->renderer);
-    SDL_framerateDelay(&E.fb->fps_mgr);
+    presentFrameBuffer(E.fb);
     return 0;
 }
 

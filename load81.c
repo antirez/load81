@@ -408,9 +408,7 @@ int processSdlEvents(void) {
     l81.epoch++;
     /* Refresh the screen */
     if (l81.opt_show_fps) showFPS();
-    SDL_RenderPresent(l81.fb->renderer);
-    /* Wait some time if the frame was produced in less than 1/FPS seconds. */
-    SDL_framerateDelay(&l81.fb->fps_mgr);
+    presentFrameBuffer(l81.fb);
     /* Stop execution on error */
     return l81.luaerr;
 }

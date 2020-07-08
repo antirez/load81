@@ -21,19 +21,35 @@ void sdlInit(frameBuffer *fb, int fullscreen) {
         exit(1);
     }
 
-    fb->renderer = SDL_CreateRenderer(fb->screen,-1,0);
+    fb->renderer = SDL_CreateRenderer(fb->screen,-1,SDL_RENDERER_TARGETTEXTURE);
     if (!fb->renderer) {
         fprintf(stderr, "Can't create SDL renderer: %s\n", SDL_GetError());
         exit(1);
     }
 
-    fb->texture = SDL_CreateTexture(fb->renderer,SDL_PIXELFORMAT_RGB24,
-                                    SDL_TEXTUREACCESS_STREAMING,
+    fb->texture = SDL_CreateTexture(fb->renderer,SDL_PIXELFORMAT_RGBA8888,
+                                    SDL_TEXTUREACCESS_TARGET,
                                     fb->width,fb->height);
     if (!fb->texture) {
         fprintf(stderr, "Can't create SDL texture: %s\n", SDL_GetError());
         exit(1);
     }
+
+    /* We render into the texture, so that we can retain what is written
+     * between frames. When we'll render the content to the window, we'll
+     * detach the texture from the target, copy it, render, see
+     * presentFrameBuffer() for more info. */
+    SDL_SetRenderTarget(fb->renderer, fb->texture);
+}
+
+void presentFrameBuffer(frameBuffer *fb) {
+    SDL_SetRenderTarget(fb->renderer, NULL);
+    SDL_RenderClear(fb->renderer);
+    SDL_RenderCopy(fb->renderer,fb->texture,NULL,NULL);
+    SDL_RenderPresent(fb->renderer);
+    SDL_SetRenderTarget(fb->renderer,fb->texture);
+    /* Wait some time if the frame was produced in less than 1/FPS seconds. */
+    SDL_framerateDelay(&fb->fps_mgr);
 }
 
 frameBuffer *createFrameBuffer(int width, int height, int fullscreen) {
