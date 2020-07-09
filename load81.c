@@ -213,45 +213,25 @@ int backgroundBinding(lua_State *L) {
 }
 
 int getpixelBinding(lua_State *L) {
-#if 0
     Uint32 pixel;
-    Uint8 r, g, b;
     int x, y;
+    unsigned char rgb[3];
 
     x = lua_tonumber(L,-2);
     y = l81.fb->height - 1 - lua_tonumber(L,-1);
 
-    SDL_LockSurface(l81.fb->screen);
     if (x < 0 || x >= l81.fb->width || y < 0 || y >= l81.fb->height) {
         pixel = 0;
     } else {
-        int bpp;
-        unsigned char *p;
-
-        bpp = l81.fb->screen->format->BytesPerPixel;
-        p = ((unsigned char*) l81.fb->screen->pixels)+
-                             (y*l81.fb->screen->pitch)+(x*bpp);
-        switch(bpp) {
-        case 1: pixel = *p; break;
-        case 2: pixel = *(Uint16 *)p; break;
-        case 3:
-#if SDL_BYTEORDER == SDL_LIL_ENDIAN
-            pixel = p[0]|p[1]<<8|p[2]<<16;
-#else
-            pixel = p[2]|p[1]<<8|p[0]<<16;
-#endif
-        case 4: pixel = *(Uint32*)p; break;
-        default: return 0; break;
-        }
+        SDL_Rect rect = {x,y,1,1};
+        SDL_RenderReadPixels(l81.fb->renderer,&rect,SDL_PIXELFORMAT_BGR888,
+                             rgb,3*l81.fb->width);
     }
-    SDL_GetRGB(pixel,l81.fb->screen->format,&r,&g,&b);
-    SDL_UnlockSurface(l81.fb->screen);
     /* Return the pixel as three values: r, g, b. */
-    lua_pushnumber(L,r);
-    lua_pushnumber(L,g);
-    lua_pushnumber(L,b);
+    lua_pushnumber(L,rgb[0]);
+    lua_pushnumber(L,rgb[1]);
+    lua_pushnumber(L,rgb[2]);
     return 3;
-#endif
 }
 
 int spriteBinding(lua_State *L) {
