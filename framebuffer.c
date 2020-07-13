@@ -136,8 +136,10 @@ void spriteBlit(frameBuffer *fb, void *sprite, int x, int y, int angle, int aa) 
     SDL_Surface *s = sprite;
     if (s == NULL) return;
     if (angle) s = rotozoomSurface(s,angle,1,aa);
+    SDL_Texture *t = SDL_CreateTextureFromSurface(fb->renderer,s);
     SDL_Rect dst = {x, fb->height-1-y - s->h, s->w, s->h};
-    SDL_BlitSurface(s, NULL, fb->renderer, &dst);
+    SDL_RenderCopy(fb->renderer,t,NULL,&dst);
+    SDL_DestroyTexture(t);
     if (angle) SDL_FreeSurface(s);
 }
 
