@@ -213,7 +213,6 @@ int backgroundBinding(lua_State *L) {
 }
 
 int getpixelBinding(lua_State *L) {
-    Uint32 pixel;
     int x, y;
     unsigned char rgb[3];
 
@@ -221,7 +220,7 @@ int getpixelBinding(lua_State *L) {
     y = l81.fb->height - 1 - lua_tonumber(L,-1);
 
     if (x < 0 || x >= l81.fb->width || y < 0 || y >= l81.fb->height) {
-        pixel = 0;
+        rgb[0] = rgb[1] = rgb[2] = 0;
     } else {
         SDL_Rect rect = {x,y,1,1};
         SDL_RenderReadPixels(l81.fb->renderer,&rect,SDL_PIXELFORMAT_BGR888,
